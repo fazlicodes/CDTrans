@@ -12,14 +12,14 @@ import os.path as osp
 from .bases import BaseImageDataset
 
 
-class DA_dataset(BaseImageDataset):
+class DA_Dataset(BaseImageDataset):
     """
     dataset
     """
     dataset_dir = ''
 
     def __init__(self, root_train='./datasets/reid_datasets/Corrected_Market1501', root_val='./datasets/reid_datlasets/Corrected_Market1501', pid_begin=0, verbose=True, **kwargs):
-        super(DA_dataset, self).__init__()
+        super(DA_Dataset, self).__init__()
         root_train = root_train
         root_valid = root_val
         self.train_dataset_dir = osp.dirname(root_train)

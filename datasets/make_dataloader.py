@@ -9,7 +9,7 @@ from .sampler import RandomIdentitySampler
 from .sampler_ddp import RandomIdentitySampler_DDP
 import torch.distributed as dist
 from .ourapi import OURAPI
-from .office_home import OfficeHome
+from .office_home import DA_Dataset
 from .visda import VisDA
 from .domainnet import DomainNet
 from .office import Office

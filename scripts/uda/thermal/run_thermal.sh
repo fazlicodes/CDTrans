@@ -11,23 +11,22 @@ then
 else
     model='deit_small'
     model_type='uda_vit_small_patch16_224_TransReID'
+    pretrain_model='deit_small_distilled_patch16_224-649709d9.pth'
     gpus="('0')"
 fi
-for target_dataset in 'Product' 'Real_World' 'Clipart' # 
+
+for target_dataset in 'flir' # 
 do
     python train.py --config_file configs/uda.yml MODEL.DEVICE_ID $gpus \
-    OUTPUT_DIR '../logs/uda/'$model'/office-home/Art2'$target_dataset \
-    MODEL.PRETRAIN_PATH '../logs/pretrain/'$model'/office-home/Art/transformer_10.pth' \
-    DATASETS.ROOT_TRAIN_DIR './data/OfficeHomeDataset/Art.txt' \
-    DATASETS.ROOT_TRAIN_DIR2 './data/OfficeHomeDataset/'$target_dataset'.txt' \
-    DATASETS.ROOT_TEST_DIR './data/OfficeHomeDataset/'$target_dataset'.txt' \
-    DATASETS.NAMES "OfficeHome" DATASETS.NAMES2 "OfficeHome" \
+    OUTPUT_DIR '../logs/uda/'$model'/DA_Dataset/RGB_Thermal'  \
+    MODEL.PRETRAIN_PATH '../DATASETDIR/dataset/pretrainModel/'$pretrain_model \
+    DATASETS.ROOT_TRAIN_DIR '../DATASETDIR/dataset/mscoco/mscoco.txt' \
+    DATASETS.ROOT_TRAIN_DIR2 '../DATASETDIR/dataset/flir/flir.txt'   \
+    DATASETS.ROOT_TEST_DIR '../DATASETDIR/dataset/flir/flir.txt'   \
+    DATASETS.NAMES "DA_Dataset" DATASETS.NAMES2 "DA_Dataset" \
     MODEL.Transformer_TYPE $model_type \
 
 done
 
-OUTPUT_DIR '../logs/pretrain/'$model'/DA_Dataset/RGB_Thermal' \
-DATASETS.ROOT_TRAIN_DIR '../DATASETDIR/dataset/mscoco/mscoco.txt' \
-DATASETS.ROOT_TEST_DIR '../DATASETDIR/dataset/flir/flir.txt'   \
-MODEL.Transformer_TYPE $model_type \
-MODEL.PRETRAIN_PATH '../DATASETDIR/dataset/pretrainModel/'$pretrain_model \
+
+

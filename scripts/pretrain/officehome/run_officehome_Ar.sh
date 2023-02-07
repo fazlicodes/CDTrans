@@ -15,7 +15,7 @@ else
 fi
 python train.py --config_file configs/pretrain.yml MODEL.DEVICE_ID "('0')" DATASETS.NAMES 'DA_Dataset' \
 OUTPUT_DIR '../logs/pretrain/'$model'/DA_Dataset/RGB_Thermal' \
-DATASETS.ROOT_TRAIN_DIR '../DATASETDIR/dataset/mscoco/mscoco.txt' \
+DATASETS.ROOT_TRAIN_DIR '../DATASETDIR/dataset/mscoco/mscoco2.txt' \
 DATASETS.ROOT_TEST_DIR '../DATASETDIR/dataset/flir/flir.txt'   \
 MODEL.Transformer_TYPE $model_type \
 MODEL.PRETRAIN_PATH '../DATASETDIR/dataset/pretrainModel/'$pretrain_model \
