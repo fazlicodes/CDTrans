@@ -12,14 +12,14 @@ import os.path as osp
 from .bases import BaseImageDataset
 
 
-class OfficeHome(BaseImageDataset):
+class DA_dataset(BaseImageDataset):
     """
-    Office Home
+    dataset
     """
     dataset_dir = ''
 
-    def __init__(self, root_train='./datasets/reid_datasets/Corrected_Market1501', root_val='./datasets/reid_datasets/Corrected_Market1501', pid_begin=0, verbose=True, **kwargs):
-        super(OfficeHome, self).__init__()
+    def __init__(self, root_train='./datasets/reid_datasets/Corrected_Market1501', root_val='./datasets/reid_datlasets/Corrected_Market1501', pid_begin=0, verbose=True, **kwargs):
+        super(DA_dataset, self).__init__()
         root_train = root_train
         root_valid = root_val
         self.train_dataset_dir = osp.dirname(root_train)
@@ -32,7 +32,7 @@ class OfficeHome(BaseImageDataset):
 
         
         if verbose:
-            print("=> Office-Home loaded")
+            print("=> dataset loaded")
             self.print_dataset_statistics(train, valid)
             
         self.train = train
@@ -47,14 +47,14 @@ class OfficeHome(BaseImageDataset):
         """Check if all files are available before going deeper"""
         if not osp.exists(self.dataset_dir):
             raise RuntimeError("'{}' is not available".format(self.dataset_dir))
-        if not osp.exists(self.art_dir):
-            raise RuntimeError("'{}' is not available".format(self.art_dir))
-        if not osp.exists(self.clipart_dir):
-            raise RuntimeError("'{}' is not available".format(self.clipart_dir))
-        if not osp.exists(self.product_dir):
-            raise RuntimeError("'{}' is not available".format(self.product_dir))
-        if not osp.exists(self.realworld_dir):
-            raise RuntimeError("'{}' is not available".format(self.realworld_dir))
+        if not osp.exists(self.flir_dir):
+            raise RuntimeError("'{}' is not available".format(self.flir_dir))
+        if not osp.exists(self.mscoco_dir):
+            raise RuntimeError("'{}' is not available".format(self.mscoco_dir))
+        # if not osp.exists(self.product_dir):
+        #     raise RuntimeError("'{}' is not available".format(self.product_dir))
+        # if not osp.exists(self.realworld_dir):
+        #     raise RuntimeError("'{}' is not available".format(self.realworld_dir))
 
     def print_dataset_statistics(self, train, valid):
         num_train_pids, num_train_imgs, num_train_cams, num_train_views = self.get_imagedata_info(train)

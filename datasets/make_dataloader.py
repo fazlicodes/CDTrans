@@ -17,10 +17,10 @@ from .office import Office
 
 __factory = {
     'OURAPI': OURAPI,
-    'OfficeHome': OfficeHome,
-    'VisDA': VisDA,
-    'DomainNet': DomainNet,
-    'Office': Office,
+    'DA_Dataset': DA_Dataset
+    # 'VisDA': VisDA,
+    # 'DomainNet': DomainNet,
+    # 'Office': Office,
 
 }
 
