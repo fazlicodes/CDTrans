@@ -15,12 +15,12 @@ else
 fi
 
 python train.py --config_file configs/uda.yml MODEL.DEVICE_ID $gpus \
-OUTPUT_DIR '../logs/uda/'$model'/office-home/Art2'$target_dataset \
+OUTPUT_DIR '../logs/uda/'$model'/coco-flir/Art2'$target_dataset \
 MODEL.PRETRAIN_PATH '../logs/trans4DA/transformer_120.pth' \
-DATASETS.ROOT_TRAIN_DIR './data/OfficeHomeDataset/Art.txt' \
-DATASETS.ROOT_TRAIN_DIR2 './data/OfficeHomeDataset/'$target_dataset'.txt' \
-DATASETS.ROOT_TEST_DIR './data/OfficeHomeDataset/'$target_dataset'.txt' \
-DATASETS.NAMES "OfficeHome" DATASETS.NAMES2 "OfficeHome" \
+DATASETS.ROOT_TRAIN_DIR './data/cocoflir/mscoco.txt' \
+DATASETS.ROOT_TRAIN_DIR2 './data/cocoflir/flir.txt' \
+DATASETS.ROOT_TEST_DIR './data/cocoflir/flir.txt' \
+DATASETS.NAMES "cocoflir" DATASETS.NAMES2 "cocoflir" \
 MODEL.Transformer_TYPE $model_type \
 
 
