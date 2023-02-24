@@ -78,6 +78,14 @@ _C.MODEL.UDA_STAGE = 'pretrain'
 _C.MODEL.FC_SETTING = 'TransReID'
 # one branch or three branch for BLOCK Pattern
 _C.MODEL.BLOCK_PATTERN = 'normal'
+# Swin Teansformer defaults
+_C.MODEL.SWIN.EMBED_DIM = 128
+_C.MODEL.SWIN.EMBED_DIM.DEPTHS= [ 2, 2, 18, 2 ]
+_C.MODEL.SWIN.EMBED_DIM.NUM_HEADS= [ 4, 8, 16, 32 ]
+_C.MODEL.SWIN.EMBED_DIM.WINDOW_SIZE= 7
+_C.MODEL.SWIN.EMBED_DIM.PATCH_SIZE= 4
+    
+
 # -----------------------------------------------------------------------------
 # INPUT
 # -----------------------------------------------------------------------------
