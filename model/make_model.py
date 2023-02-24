@@ -175,6 +175,8 @@ class build_transformer(nn.Module):
         self.task_type = cfg.MODEL.TASK_TYPE
         if '384' in cfg.MODEL.Transformer_TYPE or 'small' in cfg.MODEL.Transformer_TYPE:
             self.in_planes = 384 
+        elif 'swin' in cfg.MODEL.Transformer_TYPE:
+            self.in_planes = 1000
         else:
             self.in_planes = 768
         self.bottleneck_dim = 256
