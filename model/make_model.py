@@ -182,7 +182,7 @@ class build_transformer(nn.Module):
         self.bottleneck_dim = 256
         print('using Transformer_type: {} as a backbone'.format(cfg.MODEL.Transformer_TYPE))
         if cfg.MODEL.TASK_TYPE == 'classify_DA':
-            if cfg.MODEL.Transformer_TYPE == 'swin_base_patch4_window7_224_TransReID':
+            if 'swin' in cfg.MODEL.Transformer_TYPE:
                 self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, patch_size=cfg.MODEL.SWIN.PATCH_SIZE, 
                                                 depths=cfg.MODEL.SWIN.DEPTHS, stride_size=cfg.MODEL.STRIDE_SIZE, 
                                                 drop_path_rate=cfg.MODEL.DROP_PATH, num_heads=cfg.MODEL.SWIN.NUM_HEADS)

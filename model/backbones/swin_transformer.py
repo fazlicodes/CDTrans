@@ -617,7 +617,7 @@ class SwinTransformer(nn.Module):
         flops += self.num_features * self.num_classes
         return flops
 
-    def load_pretrained(self, config, model_path, logger):
+    def load_pretrained(self, model, model_path, logger):
 
         
         checkpoint = torch.load(model_path, map_location='cpu')
@@ -703,6 +703,7 @@ class SwinTransformer(nn.Module):
 
         del checkpoint
         torch.cuda.empty_cache()
+
     def load_param(self, model_path):
         param_dict = torch.load(model_path, map_location='cpu')
         if 'model' in param_dict:
@@ -731,6 +732,26 @@ class SwinTransformer(nn.Module):
                 print('===========================ERROR=========================')
                 print('shape do not match in k :{}: param_dict{} vs self.state_dict(){}'.format(k, v.shape, self.state_dict()[k].shape))
 
+
+def resize_pos_embed(posemb, posemb_new, hight, width):
+    # Rescale the grid of position embeddings when loading from state_dict. Adapted from
+    # https://github.com/google-research/vision_transformer/blob/00883dd691c63a6830751563748663526e811cee/vit_jax/checkpoint.py#L224
+    print('Resized position embedding: %s to %s', posemb.shape, posemb_new.shape)
+    ntok_new = posemb_new.shape[1]
+    if True:
+        posemb_tok, posemb_grid = posemb[:, :1], posemb[0, 1:]
+        ntok_new -= 1
+    else:
+        posemb_tok, posemb_grid = posemb[:, :0], posemb[0]
+    gs_old = int(math.sqrt(len(posemb_grid)))
+
+    print('Position embedding resize to height:{} width: {}'.format(hight, width))
+    posemb_grid = posemb_grid.reshape(1, gs_old, gs_old, -1).permute(0, 3, 1, 2)
+    posemb_grid = F.interpolate(posemb_grid, size=(hight, width), mode='bilinear')
+    # posemb_grid = F.interpolate(posemb_grid, size=(width, hight), mode='bilinear')
+    posemb_grid = posemb_grid.permute(0, 2, 3, 1).reshape(1, hight * width, -1)
+    posemb = torch.cat([posemb_tok, posemb_grid], dim=1)
+    return posemb
 
 def swin_base_patch4_window7_224_TransReID(img_size=224, patch_size=4, in_chans=3, num_classes=1000,
                  embed_dim=96, depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24],
