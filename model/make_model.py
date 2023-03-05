@@ -174,7 +174,10 @@ class build_transformer(nn.Module):
         self.neck_feat = cfg.TEST.NECK_FEAT
         self.task_type = cfg.MODEL.TASK_TYPE
         if '384' in cfg.MODEL.Transformer_TYPE or 'small' in cfg.MODEL.Transformer_TYPE:
-            self.in_planes = 384 
+            if 'swin' in cfg.MODEL.Transformer_TYPE:
+                self.in_planes = 1000
+            else:
+                self.in_planes = 384 
         elif 'swin' in cfg.MODEL.Transformer_TYPE:
             self.in_planes = 1000
         else:
