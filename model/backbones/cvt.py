@@ -17,7 +17,7 @@ from einops.layers.torch import Rearrange
 from timm.models.layers import DropPath, trunc_normal_
 
 from .registry import register_model
-
+import math
 
 # From PyTorch internals
 def _ntuple(n):
@@ -621,6 +621,34 @@ class ConvolutionalVisionTransformer(nn.Module):
         x = self.head(x)
 
         return x
+    def load_param(self, model_path):
+        param_dict = torch.load(model_path, map_location='cpu')
+        if 'model' in param_dict:
+            param_dict = param_dict['model']
+
+        if 'state_dict' in param_dict:
+            param_dict = param_dict['state_dict']
+        
+        for k, v in param_dict.items():
+            if 'head' in k or 'dist' in k:
+                continue
+            if 'patch_embed.proj.weight' in k and len(v.shape) < 4:
+                # For old models that I trained prior to conv based patchification
+                O, I, H, W = self.patch_embed.proj.weight.shape
+                v = v.reshape(O, -1, H, W)
+            elif k == 'pos_embed' and v.shape != self.pos_embed.shape:
+                # To resize pos embedding when using model at different size from pretrained weights
+                if 'distilled' in model_path:
+                    print('distill need to choose right cls token in the pth')
+                    v = torch.cat([v[:, 0:1], v[:, 2:]], dim=1)
+                v = resize_pos_embed(v, self.pos_embed, self.patch_embed.num_y, self.patch_embed.num_x)
+                # self.state_dict()[k].copy_(revise)
+            try:
+                self.state_dict()[k].copy_(v)
+            except:
+                print('===========================ERROR=========================')
+                print('shape do not match in k :{}: param_dict{} vs self.state_dict(){}'.format(k, v.shape, self.state_dict()[k].shape))
+
 
 # def cvt_21_224_TransReID(img_size=(224, 224), stride_size=16, drop_path_rate=0.1, local_feature=False,aie_xishu=1.5, **kwargs):
 #     model = ConvolutionalVisionTransformer(
@@ -665,6 +693,26 @@ def cvt_21_224_TransReID(pretrained = False, index=0, **kwargs):
     if pretrained:
         model.load_state_dict(torch.load("./data/pretrainModel/CvT-21-224x224-IN-1k.pth", map_location="cpu"), strict=False)
     return model
+
+def resize_pos_embed(posemb, posemb_new, hight, width):
+    # Rescale the grid of position embeddings when loading from state_dict. Adapted from
+    # https://github.com/google-research/vision_transformer/blob/00883dd691c63a6830751563748663526e811cee/vit_jax/checkpoint.py#L224
+    print('Resized position embedding: %s to %s', posemb.shape, posemb_new.shape)
+    ntok_new = posemb_new.shape[1]
+    if True:
+        posemb_tok, posemb_grid = posemb[:, :1], posemb[0, 1:]
+        ntok_new -= 1
+    else:
+        posemb_tok, posemb_grid = posemb[:, :0], posemb[0]
+    gs_old = int(math.sqrt(len(posemb_grid)))
+
+    print('Position embedding resize to height:{} width: {}'.format(hight, width))
+    posemb_grid = posemb_grid.reshape(1, gs_old, gs_old, -1).permute(0, 3, 1, 2)
+    posemb_grid = F.interpolate(posemb_grid, size=(hight, width), mode='bilinear')
+    # posemb_grid = F.interpolate(posemb_grid, size=(width, hight), mode='bilinear')
+    posemb_grid = posemb_grid.permute(0, 2, 3, 1).reshape(1, hight * width, -1)
+    posemb = torch.cat([posemb_tok, posemb_grid], dim=1)
+    return posemb
 
 @register_model
 def get_cls_model(config, **kwargs):
