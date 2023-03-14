@@ -18,6 +18,6 @@ OUTPUT_DIR '../logs/pretrain/'$model'/coco-flir/mscoco' \
 DATASETS.ROOT_TRAIN_DIR '/home/amrin.kareem/Downloads/AI_Project/Old/data/cocoflir/mscoco.txt' \
 DATASETS.ROOT_TEST_DIR '/home/amrin.kareem/Downloads/AI_Project/Old/data/cocoflir/flir.txt'   \
 MODEL.Transformer_TYPE $model_type \
-MODEL.PRETRAIN_PATH './data/pretrainModel/CvT-21-224x224-IN-1k.pth'$pretrain_model \
+MODEL.PRETRAIN_PATH './data/pretrainModel/'$pretrain_model \
 
 
