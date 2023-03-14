@@ -176,7 +176,7 @@ class build_transformer(nn.Module):
         if '384' in cfg.MODEL.Transformer_TYPE or 'small' in cfg.MODEL.Transformer_TYPE:
             self.in_planes = 384 
         else:
-            self.in_planes = 768
+            self.in_planes = 3
         self.bottleneck_dim = 256
         print('using Transformer_type: {} as a backbone'.format(cfg.MODEL.Transformer_TYPE))
         if cfg.MODEL.TASK_TYPE == 'classify_DA':

@@ -690,8 +690,9 @@ def cvt_21_224_TransReID(pretrained = False, index=0, **kwargs):
         init=getattr(msvit_spec, 'INIT', 'trunc_norm'),
         spec=msvit_spec
     )
-    if pretrained:
-        model.load_state_dict(torch.load("./data/pretrainModel/CvT-21-224x224-IN-1k.pth", map_location="cpu"), strict=False)
+    print(model)
+    #if pretrained:
+        #model.load_state_dict(torch.load("./data/pretrainModel/CvT-21-224x224-IN-1k.pth", map_location="cpu"), strict=False)
     return model
 
 def resize_pos_embed(posemb, posemb_new, hight, width):
