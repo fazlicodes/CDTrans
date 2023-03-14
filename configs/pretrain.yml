@@ -1,13 +1,13 @@
 MODEL:
   PRETRAIN_CHOICE: 'imagenet'
-  PRETRAIN_PATH: './data/pretrainModel/deit_base_distilled_patch16_224-df68dfff.pth'
+  PRETRAIN_PATH: './data/pretrainModel/CvT-21-224x224-IN-1k.pth' #deit_base_distilled_patch16_224-df68dfff.pth
   METRIC_LOSS_TYPE: 'triplet'
   IF_LABELSMOOTH: 'on'
   IF_WITH_CENTER: 'no'
   NAME: 'transformer'
   NO_MARGIN: True
   DEVICE_ID: ('0')
-  Transformer_TYPE: 'vit_base_patch16_224_TransReID' #vit_small_patch16_224_TransReID
+  Transformer_TYPE: 'cvt_21_224_TransReID' #'vit_base_patch16_224_TransReID' #vit_small_patch16_224_TransReID
   STRIDE_SIZE: [16, 16]
   FC_SETTING: 'TransReID'
   TASK_TYPE: 'classify_DA' 
@@ -24,8 +24,8 @@ INPUT:
   PIXEL_STD: [0.229, 0.224, 0.225]
 
 DATASETS:
-  NAMES: ('OURAPI')
-  ROOT_TRAIN_DIR: ('./datasets/reid_datasets/Corrected_Market1501')
+  NAMES: ('cocoflir')
+  ROOT_TRAIN_DIR: ('/home/amrin.kareem/Downloads/AI_Project/Old/data/')
   NAMES2: ('OURAPI')
   ROOT_TRAIN_DIR2: ('./datasets/reid_datasets/Refined_DukeMTMC_reID')
   ROOT_TEST_DIR: ('./datasets/reid_datasets/Refined_DukeMTMC_reID')
@@ -59,10 +59,10 @@ TEST:
   RE_RANKING: False
   RE_RANKING_TRACK: False
 
-  WEIGHT: '../logs/trans4DA/transformer_120.pth'
+  WEIGHT: '../logs/trans4DA/CVT/transformer_120.pth'
   NECK_FEAT: 'after'
   FEAT_NORM: 'yes'
 
-OUTPUT_DIR: '../logs/trans4DA'
+OUTPUT_DIR: '../logs/CVT/trans4DA'
 
 

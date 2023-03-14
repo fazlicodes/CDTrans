@@ -5,6 +5,7 @@ from loss.arcface import ArcFace
 from .backbones.resnet_ibn_a import resnet50_ibn_a,resnet101_ibn_a
 from .backbones.se_resnet_ibn_a import se_resnet101_ibn_a
 from .backbones.vit_pytorch import vit_base_patch16_224_TransReID, vit_small_patch16_224_TransReID
+from .backbones.cvt import cvt_21_224_TransReID
 from .backbones.vit_pytorch_uda import uda_vit_base_patch16_224_TransReID, uda_vit_small_patch16_224_TransReID
 import torch.nn.functional as F
 from loss.metric_learning import Arcface, Cosface, AMSoftmax, CircleLoss
@@ -396,8 +397,10 @@ class build_uda_transformer(nn.Module):
 __factory_hh = {
     'vit_base_patch16_224_TransReID': vit_base_patch16_224_TransReID,
     'vit_small_patch16_224_TransReID': vit_small_patch16_224_TransReID, 
+    'cvt_21_224_TransReID': cvt_21_224_TransReID,
     'uda_vit_small_patch16_224_TransReID': uda_vit_small_patch16_224_TransReID, 
     'uda_vit_base_patch16_224_TransReID': uda_vit_base_patch16_224_TransReID,
+
     # 'resnet101': resnet101,
 }
 
