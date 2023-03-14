@@ -9,18 +9,19 @@ from .sampler import RandomIdentitySampler
 from .sampler_ddp import RandomIdentitySampler_DDP
 import torch.distributed as dist
 from .ourapi import OURAPI
-from .office_home import DA_Dataset
+from .office_home import OfficeHome
 from .visda import VisDA
 from .domainnet import DomainNet
 from .office import Office
-
+from .coco_flir import CocoFlir
 
 __factory = {
     'OURAPI': OURAPI,
-    'DA_Dataset': DA_Dataset
-    # 'VisDA': VisDA,
-    # 'DomainNet': DomainNet,
-    # 'Office': Office,
+    'OfficeHome': OfficeHome,
+    'VisDA': VisDA,
+    'DomainNet': DomainNet,
+    'Office': Office,
+    'cocoflir': CocoFlir,
 
 }
 
