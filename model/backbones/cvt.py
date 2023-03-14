@@ -602,7 +602,7 @@ class ConvolutionalVisionTransformer(nn.Module):
 
         return layers
 
-    def forward_features(self, x):
+    def forward_features(self, x, cam_label, view_label):
         for i in range(self.num_stages):
             x, cls_tokens = getattr(self, f'stage{i}')(x)
 
@@ -616,8 +616,8 @@ class ConvolutionalVisionTransformer(nn.Module):
 
         return x
 
-    def forward(self, x):
-        x = self.forward_features(x)
+    def forward(self, x, cam_label=None, view_label=None):
+        x = self.forward_features(x, cam_label, view_label)
         x = self.head(x)
 
         return x
