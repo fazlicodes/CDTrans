@@ -323,7 +323,8 @@ def do_train_uda(cfg,
             t_pseudo_target = vid[1].to(device)
             s_idx,t_idx = idx
             label_knn = label_memory2[t_idx].cuda()
-
+            print(img.shape)
+            print(t_img.shape)
             optimizer.zero_grad()
             optimizer_center.zero_grad()
   
