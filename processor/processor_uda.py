@@ -309,6 +309,7 @@ def do_train_uda(cfg,
             dynamic_top = 1
             print('source and target topk==',dynamic_top)
             target_label, knnidx, knnidx_topk, target_knnidx = compute_knn_idx(logger, model, train_loader1, train_loader2, feat_memory1, feat_memory2, label_memory1, label_memory2, img_num1, img_num2, topk=dynamic_top, reliable_threshold=0.0)
+            print(target_label)
             del train_loader
             
             train_loader = generate_new_dataset(cfg, logger, label_memory2, s_dataset, t_dataset, knnidx, target_knnidx, target_label, label_memory1, img_num1, img_num2, with_pseudo_label_filter = cfg.SOLVER.WITH_PSEUDO_LABEL_FILTER)
