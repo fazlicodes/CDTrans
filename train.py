@@ -89,6 +89,7 @@ if __name__ == '__main__':
     if cfg.MODEL.UDA_STAGE == 'UDA':
         train_loader, train_loader_normal, val_loader, num_query, num_classes, camera_num, view_num, train_loader1, train_loader2, img_num1, img_num2, s_dataset, t_dataset = make_dataloader(cfg)
     elif cfg.MODEL.UDA_STAGE == 'target':
+        print('test test')
         train_loader, train_loader_normal, val_loader, num_query, num_classes, camera_num, view_num = build_dataset(cfg)
     else:
         train_loader, train_loader_normal, val_loader, num_query, num_classes, camera_num, view_num = make_dataloader(cfg)
