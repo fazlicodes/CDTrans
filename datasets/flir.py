@@ -6,6 +6,7 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import datasets
 from torchvision.transforms import ToTensor
+from torch.utils.data import DataLoader
 
 def train_collate_fn(batch):
     """
@@ -106,7 +107,7 @@ def build_dataset(cfg):
                 root_dir='/nfs/users/ext_group7/project/CDTrans/data/cocoflir/', transform=val_transforms)
             
     train_loader = DataLoader(
-        train_set, batch_size=cfg.SOLVER.IMS_PER_BATCH, shuffle=True, num_workers=num_workers,
+        train_dataset, batch_size=cfg.SOLVER.IMS_PER_BATCH, shuffle=True, num_workers=num_workers,
         collate_fn=train_collate_fn
     ) 
 
