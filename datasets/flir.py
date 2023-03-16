@@ -97,10 +97,10 @@ def build_dataset(cfg):
     nb_classes=3
     num_workers = cfg.DATALOADER.NUM_WORKERS
     train_dataset = Coco(label_path='/home/rufael.marew/Documents/Academics/AI702/project/CDTrans/data/train_labels.txt',
-                root_dir='/home/rufael.marew/Documents/Academics/AI702/project/test/sgada_data/', transfrom=train_transforms)
+                root_dir='/home/rufael.marew/Documents/Academics/AI702/project/test/sgada_data/', transform=train_transforms)
     
     train_set_normal = Coco(label_path='/home/rufael.marew/Documents/Academics/AI702/project/CDTrans/data/train_labels.txt',
-                root_dir='/home/rufael.marew/Documents/Academics/AI702/project/test/sgada_data/', transfrom=val_transforms)
+                root_dir='/home/rufael.marew/Documents/Academics/AI702/project/test/sgada_data/', transform=val_transforms)
     
     val_dataset = Coco(label_path='/home/rufael.marew/Documents/Academics/AI702/project/CDTrans/data/val_labels.txt',
                 root_dir='/home/rufael.marew/Documents/Academics/AI702/project/test/sgada_data/', transform=val_transforms)
