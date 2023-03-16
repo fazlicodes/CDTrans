@@ -1,123 +1,89 @@
-from torchvision.io import read_image
-import pandas as pd
-import os
-import torchvision.transforms as T
-import torch
-from torch.utils.data import Dataset
-from torchvision import datasets
-from torchvision.transforms import ToTensor
-from torch.utils.data import DataLoader
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# @Time    : 2019/1/17 15:00
+# @Author  : Hao Luo
+# @File    : msmt17.py
 
-def train_collate_fn(batch):
+import glob
+import re
+
+import os.path as osp
+
+from .bases import BaseImageDataset
+
+
+class Flir(BaseImageDataset):
     """
-    # collate_fn这个函数的输入就是一个list，list的长度是一个batch size，list中的每个元素都是__getitem__得到的结果
+    Flir dataset
     """
-    imgs, pids, camids, viewids , _ , idx= zip(*batch)
-    # print('train collate fn' , imgs)
-    pids = torch.tensor(pids, dtype=torch.int64)
-    viewids = torch.tensor(viewids, dtype=torch.int64)
-    camids = torch.tensor(camids, dtype=torch.int64)
-    return torch.stack(imgs, dim=0), pids, camids, viewids, idx
+    dataset_dir = ''
 
-def val_collate_fn(batch):##### revised by luo
-    imgs, pids, camids, viewids, img_paths, idx = zip(*batch)
-    viewids = torch.tensor(viewids, dtype=torch.int64)
-    camids_batch = torch.tensor(camids, dtype=torch.int64)
-    return torch.stack(imgs, dim=0), pids, camids, camids_batch, viewids, img_paths
+    def __init__(self, root_train='./datasets/reid_datasets/Corrected_Market1501', root_val='./datasets/reid_datasets/Corrected_Market1501', pid_begin=0, verbose=True, **kwargs):
+        super(CocoFlir, self).__init__()
+        root_train = root_train
+        root_valid = root_val
+        self.train_dataset_dir = osp.dirname(root_train)
+        self.valid_dataset_dir = osp.dirname(root_val)
+        self.train_name = osp.basename(root_train).split('.')[0]
+        self.valid_name = osp.basename(root_valid).split('.')[0]
+        self.pid_begin = pid_begin
+        train = self._process_dir(root_train, self.train_dataset_dir)
+        valid = self._process_dir(root_valid, self.valid_dataset_dir)
 
-def source_target_train_collate_fn(batch):
-    """
-    # collate_fn这个函数的输入就是一个list，list的长度是一个batch size，list中的每个元素都是__getitem__得到的结果
-    """
-    b_data = zip(*batch)
-    # print('b_data is {}'.format(b_data))
-    # if len(b_data) == 8:
-    s_imgs, t_imgs, s_pids, t_pids, camids, viewids , s_file_name, t_file_name , s_idx, t_idx = b_data
-    # print('make dataloader collate_fn {}'.format(pids))
-    # print(pids)
-    s_pid = torch.tensor(s_pids, dtype=torch.int64)
-    t_pid = torch.tensor(t_pids, dtype=torch.int64)
-    pids = (s_pid, t_pid)
-
-    file_name = (s_file_name, t_file_name)
-    
-    viewids = torch.tensor(viewids, dtype=torch.int64)
-    camids = torch.tensor(camids, dtype=torch.int64)
-    s_idx = torch.tensor(s_idx, dtype=torch.int64)
-    t_idx = torch.tensor(t_idx, dtype=torch.int64)
-    idx = (s_idx, t_idx)
-    img1 = torch.stack(s_imgs, dim=0)
-    img2 = torch.stack(t_imgs, dim=0)
-    return (img1, img2), pids, camids, viewids, file_name, idx
-
-
-class Coco(Dataset):
-    """Face Landmarks dataset."""
-
-    def __init__(self, label_path, root_dir, transform=None):
-        """
-        Args:
-            csv_file (string): Path to the csv file with annotations.
-            root_dir (string): Directory with all the images.
-            transform (callable, optional): Optional transform to be applied
-                on a sample.
-        """
         
-        self.label = pd.read_csv(label_path, delimiter=' ')
-        self.root_dir = root_dir
-        self.transform = transform
-        self.target_transform = None
-
-    def __len__(self):
-        return len(self.label)
-
-    def __getitem__(self, idx):
-        img_path = os.path.join(self.root_dir, self.label.iloc[idx, 0])
-        image = read_image(img_path)
-        label = self.label.iloc[idx, 1]
-        if self.transform:
-            image = self.transform(image)
-        if self.target_transform:
-            label = self.target_transform(label)
-        return image, label
-    
-def build_dataset(cfg):
-    train_transforms = T.Compose([
-        T.Resize((256, 256)),
-        T.RandomCrop((224, 224)),
-        T.RandomHorizontalFlip(),
-        T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-    val_transforms = T.Compose([
-        T.Resize((256, 256)),
-        T.CenterCrop((224, 224)),
-        T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-    nb_classes=3
-    num_workers = cfg.DATALOADER.NUM_WORKERS
-    train_dataset = Coco(label_path='/nfs/users/ext_group7/project/CDTrans/data/train_labels.txt',
-                root_dir='/nfs/users/ext_group7/project/CDTrans/data/cocoflir/', transform=train_transforms)
-    
-    train_set_normal = Coco(label_path='/nfs/users/ext_group7/project/CDTrans/data/train_labels.txt',
-                root_dir='/nfs/users/ext_group7/project/CDTrans/data/cocoflir/', transform=val_transforms)
-    
-    val_dataset = Coco(label_path='/nfs/users/ext_group7/project/CDTrans/data/val_labels.txt',
-                root_dir='/nfs/users/ext_group7/project/CDTrans/data/cocoflir/', transform=val_transforms)
+        if verbose:
+            print("=> Coco-Flir loaded")
+            self.print_dataset_statistics(train, valid)
             
-    train_loader = DataLoader(
-        train_dataset, batch_size=cfg.SOLVER.IMS_PER_BATCH, shuffle=True, num_workers=num_workers,
-        collate_fn=train_collate_fn
-    ) 
+        self.train = train
+        self.valid = valid
+        self.test = valid
 
-    val_loader = DataLoader(
-        val_dataset, batch_size=cfg.TEST.IMS_PER_BATCH, shuffle=False, num_workers=num_workers,
-        collate_fn=val_collate_fn
-    )
+        self.num_train_pids, self.num_train_imgs, self.num_train_cams, self.num_train_vids = self.get_imagedata_info(self.train)   
+        self.num_valid_pids, self.num_valid_imgs, self.num_valid_cams, self.num_valid_vids = self.get_imagedata_info(self.valid)
+        self.num_test_pids = self.num_valid_pids
 
-    train_loader_normal = DataLoader(
-        train_set_normal, batch_size=cfg.TEST.IMS_PER_BATCH, shuffle=False, num_workers=num_workers,
-        collate_fn=val_collate_fn
-    )  
-    return train_loader, train_loader_normal, val_loader, None, nb_classes, None, None
+    def _check_before_run(self):
+        """Check if all files are available before going deeper"""
+        if not osp.exists(self.dataset_dir):
+            raise RuntimeError("'{}' is not available".format(self.dataset_dir))
+        if not osp.exists(self.art_dir):
+            raise RuntimeError("'{}' is not available".format(self.art_dir))
+        if not osp.exists(self.clipart_dir):
+            raise RuntimeError("'{}' is not available".format(self.clipart_dir))
+        if not osp.exists(self.product_dir):
+            raise RuntimeError("'{}' is not available".format(self.product_dir))
+        if not osp.exists(self.realworld_dir):
+            raise RuntimeError("'{}' is not available".format(self.realworld_dir))
+
+    def print_dataset_statistics(self, train, valid):
+        num_train_pids, num_train_imgs, num_train_cams, num_train_views = self.get_imagedata_info(train)
+        num_valid_pids, num_valid_imgs, num_valid_cams, num_targe_views = self.get_imagedata_info(valid)
+
+        print("Dataset statistics:")
+        print("train {} and valid is {}".format(self.train_name, self.valid_name))
+        print("  ----------------------------------------")
+        print("  subset   | # ids | # images | # cameras")
+        print("  ----------------------------------------")
+        print("  train   | {:5d} | {:8d} | {:9d}".format( num_train_pids, num_train_imgs, num_train_cams))
+        print("  valid   | {:5d} | {:8d} | {:9d}".format(num_valid_pids, num_valid_imgs, num_valid_cams))
+        print("  ----------------------------------------")
+        
+    def _process_dir(self, list_path, dir_path):
+        with open(list_path, 'r') as txt:
+            lines = txt.readlines()
+        dataset = []
+        pid_container = set()
+        cam_container = set()
+        for img_idx, img_info in enumerate(lines):
+            img_path, pid = img_info.split(' ')
+            pid = int(pid)  # no need to relabel
+            img_path = osp.join(dir_path, img_path)
+            dataset.append((img_path, self.pid_begin +pid, 0, 0, img_idx))
+            pid_container.add(pid)
+#             cam_container.add(camid)
+#         print(cam_container, 'cam_container')
+        # check if pid starts from 0 and increments with 1
+        for idx, pid in enumerate(pid_container):
+            assert idx == pid, "See code comment for explanation"
+        return dataset
