@@ -11,7 +11,7 @@ MODEL:
   STRIDE_SIZE: [16, 16]
   FC_SETTING: 'TransReID'
   TASK_TYPE: 'classify_DA' 
-  UDA_STAGE: 'pretrain'
+  UDA_STAGE: 'target'
   SWIN:
     EMBED_DIM: 128
     DEPTHS: [ 2, 2, 18, 2 ]
