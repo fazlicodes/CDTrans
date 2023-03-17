@@ -19,7 +19,7 @@ class Flir(BaseImageDataset):
     dataset_dir = ''
 
     def __init__(self, root_train='./datasets/reid_datasets/Corrected_Market1501', root_val='./datasets/reid_datasets/Corrected_Market1501', pid_begin=0, verbose=True, **kwargs):
-        super(CocoFlir, self).__init__()
+        super(Flir, self).__init__()
         root_train = root_train
         root_valid = root_val
         self.train_dataset_dir = osp.dirname(root_train)
