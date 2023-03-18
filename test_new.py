@@ -37,6 +37,7 @@ model = torch.load(args.model_path)
 train_loader, train_loader_normal, val_loader, num_query, num_classes, camera_num, view_num = make_dataloader(cfg)
 # test_dataset = MyDataset(...) # replace with your own dataset
 # test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+print(args.model_path)
 print(next(iter(val_loader)))
 # Evaluate the model on the test set
 # model.eval()
