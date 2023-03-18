@@ -42,11 +42,8 @@ logger.info("Running with config:\n{}".format(cfg))
 train_loader, train_loader_normal, val_loader, num_query, num_classes, camera_num, view_num = make_dataloader(cfg)
 
 # Load the pre-trained model's state dictionary
-state_dict = torch.load(args.model_path)
-if 'model' in state_dict:
-    state_dict = state_dict['model'] # handle models saved with DataParallel
-model = make_model(cfg, num_class=args.num_classes, camera_num=camera_num, view_num = view_num)
-model.load_state_dict(state_dict)
+model = make_model(cfg, num_class=num_classes, camera_num=camera_num, view_num = view_num)
+model.load_param_finetune(cfg.TEST.WEIGHT)
 
 # Evaluate the model on the test set
 model.eval()
