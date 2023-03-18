@@ -53,7 +53,7 @@ model.eval()
 class_correct = list(0. for i in range(args.num_classes))
 class_total = list(0. for i in range(args.num_classes))
 with torch.no_grad():
-    for inputs, labels, _, _, _ in val_loader:
+    for inputs, labels, _, _, in val_loader:
         outputs = model(inputs)
         _, predicted = torch.max(outputs, 1)
         for i in range(len(labels)):
