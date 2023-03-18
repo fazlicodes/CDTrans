@@ -55,8 +55,10 @@ with torch.no_grad():
     for inputs, labels, _, _, _, _ in tqdm(val_loader):
         inputs = inputs.to(device)
         # labels = labels.to(device)
+        print(labels)
         outputs = model(inputs)
         _, predicted = torch.max(outputs, 1)
+        print(predicted)
         for i in range(len(labels)):
             label = labels[i]
             class_correct[label] += (predicted[i] == label).item()
