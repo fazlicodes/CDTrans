@@ -23,7 +23,7 @@ else
     model_type='swin_base_patch4_window7_224_TransReID'
     pretrain_model='swin_base_patch4_window7_224_22k.pth'
 fi
-python test_new.py --config_file configs/pretrain.yml --num_classes 3 --model_path '../logs/pretrain/'$model'/coco-flir/flir/transformer_best_model.pth' MODEL.DEVICE_ID "('0')" DATASETS.NAMES 'flir' \
+python test_new.py --config_file configs/pretrain.yml --num_classes 3 --model_path '../logs/pretrain/'$model'/coco-flir/mscoco/transformer_best_model.pth' MODEL.DEVICE_ID "('0')" DATASETS.NAMES 'flir' \
 OUTPUT_DIR '../logs/target/perclass/'$model'/coco-flir/flir' \
 DATASETS.ROOT_TRAIN_DIR './data/cocoflir/train_labels.txt' \
 DATASETS.ROOT_TEST_DIR './data/cocoflir/val_labels.txt'   \
