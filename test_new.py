@@ -54,7 +54,7 @@ class_total = list(0. for i in range(args.num_classes))
 with torch.no_grad():
     for inputs, labels, _, _, _, _ in tqdm(val_loader):
         inputs = inputs.to(device)
-        labels = labels.to(device)
+        # labels = labels.to(device)
         outputs = model(inputs)
         _, predicted = torch.max(outputs, 1)
         for i in range(len(labels)):
