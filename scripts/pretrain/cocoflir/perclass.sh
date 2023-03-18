@@ -28,6 +28,6 @@ OUTPUT_DIR '../logs/target/perclass/'$model'/coco-flir/flir' \
 DATASETS.ROOT_TRAIN_DIR './data/cocoflir/train_labels.txt' \
 DATASETS.ROOT_TEST_DIR './data/cocoflir/val_labels.txt'   \
 MODEL.Transformer_TYPE $model_type \
-MODEL.PRETRAIN_PATH '../logs/pretrain/'$model'/cocoflir/mscoco/transformer_best_model.pth' \
+MODEL.PRETRAIN_PATH '../logs/pretrain/'$model'/coco-flir/mscoco/transformer_best_model.pth' \
 
 
