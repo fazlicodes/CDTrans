@@ -45,26 +45,25 @@ model = torch.load(args.model_path)
 train_loader, train_loader_normal, val_loader, num_query, num_classes, camera_num, view_num = make_dataloader(cfg)
 # test_dataset = MyDataset(...) # replace with your own dataset
 # test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
-print(args.model_path)
-print(next(iter(val_loader)))
-# Evaluate the model on the test set
-# model.eval()
-# class_correct = list(0. for i in range(args.num_classes))
-# class_total = list(0. for i in range(args.num_classes))
-# with torch.no_grad():
-#     for inputs, labels in val_loader:
-#         outputs = model(inputs)
-#         _, predicted = torch.max(outputs, 1)
-#         for i in range(len(labels)):
-#             label = labels[i]
-#             class_correct[label] += (predicted[i] == label).item()
-#             class_total[label] += 1
 
-# # Print the accuracy for each class
-# for i in range(args.num_classes):
-#     if class_total[i] > 0:
-#         print('Accuracy of class %d: %2d%% (%2d/%2d)' % (
-#             i, 100 * class_correct[i] / class_total[i],
-#             class_correct[i], class_total[i]))
-#     else:
-#         print('Accuracy of class %d: N/A (no examples in class)' % (i))
+# Evaluate the model on the test set
+model.eval()
+class_correct = list(0. for i in range(args.num_classes))
+class_total = list(0. for i in range(args.num_classes))
+with torch.no_grad():
+    for inputs, labels, _, _, _ in val_loader:
+        outputs = model(inputs)
+        _, predicted = torch.max(outputs, 1)
+        for i in range(len(labels)):
+            label = labels[i]
+            class_correct[label] += (predicted[i] == label).item()
+            class_total[label] += 1
+
+# Print the accuracy for each class
+for i in range(args.num_classes):
+    if class_total[i] > 0:
+        logger.info('Accuracy of class %d: %2d%% (%2d/%2d)' % (
+            i, 100 * class_correct[i] / class_total[i],
+            class_correct[i], class_total[i]))
+    else:
+        print('Accuracy of class %d: N/A (no examples in class)' % (i))
