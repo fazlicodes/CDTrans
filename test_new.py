@@ -56,7 +56,7 @@ with torch.no_grad():
         inputs = inputs.to(device)
         # labels = labels.to(device)
         print(labels)
-        outputs = model(inputs)
+        outputs = model(inputs, return_logits=True)
         _, predicted = torch.max(outputs, 1)
         print(outputs)
         for i in range(len(labels)):
