@@ -4,7 +4,7 @@ from utils.logger import setup_logger
 import os
 from config import cfg
 from datasets import make_dataloader
-
+from model import make_model
 # Define command line arguments
 parser = argparse.ArgumentParser(description='Test a pre-trained model on a dataset')
 parser.add_argument(
@@ -38,13 +38,15 @@ if args.config_file != "":
         logger.info(config_str)
 logger.info("Running with config:\n{}".format(cfg))
 
-# Load the pre-trained model
-model = torch.load(args.model_path)
-
 # Define the test dataset and data loader
 train_loader, train_loader_normal, val_loader, num_query, num_classes, camera_num, view_num = make_dataloader(cfg)
-# test_dataset = MyDataset(...) # replace with your own dataset
-# test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+# Load the pre-trained model's state dictionary
+state_dict = torch.load(args.model_path)
+if 'model' in state_dict:
+    state_dict = state_dict['model'] # handle models saved with DataParallel
+model = make_model(cfg, num_class=args.num_classes, camera_num=camera_num, view_num = view_num)
+model.load_state_dict(state_dict)
 
 # Evaluate the model on the test set
 model.eval()
