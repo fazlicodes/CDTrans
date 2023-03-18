@@ -58,7 +58,7 @@ with torch.no_grad():
         print(labels)
         outputs = model(inputs, return_logits=True)
         _, predicted = torch.max(outputs, 1)
-        print(outputs)
+        print(predicted)
         for i in range(len(labels)):
             label = labels[i]
             class_correct[label] += (predicted[i] == label).item()
