@@ -14,6 +14,8 @@ parser.add_argument('--model_path', type=str, required=True,
                     help='Path to the pre-trained model')
 parser.add_argument('--num_classes', type=int, required=True, default=3,
                     help='Number of classes in the dataset')
+parser.add_argument("opts", help="Modify config options using the command-line", default=None,
+                        nargs=argparse.REMAINDER)
 args = parser.parse_args()
 
 if args.config_file != "":
