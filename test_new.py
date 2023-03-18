@@ -16,6 +16,12 @@ parser.add_argument('--num_classes', type=int, required=True, default=3,
                     help='Number of classes in the dataset')
 args = parser.parse_args()
 
+if args.config_file != "":
+    cfg.merge_from_file(args.config_file)
+cfg.merge_from_list(args.opts)
+cfg.freeze()
+
+
 output_dir = cfg.OUTPUT_DIR
 if output_dir and not os.path.exists(output_dir):
     os.makedirs(output_dir)
