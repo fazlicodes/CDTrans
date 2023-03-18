@@ -24,6 +24,7 @@ if args.config_file != "":
 cfg.merge_from_list(args.opts)
 cfg.freeze()
 
+device = "cuda"
 
 output_dir = cfg.OUTPUT_DIR
 if output_dir and not os.path.exists(output_dir):
@@ -45,13 +46,15 @@ train_loader, train_loader_normal, val_loader, num_query, num_classes, camera_nu
 # Load the pre-trained model's state dictionary
 model = make_model(cfg, num_class=num_classes, camera_num=camera_num, view_num = view_num)
 model.load_param_finetune(cfg.TEST.WEIGHT)
-
+model.to(device)
 # Evaluate the model on the test set
 model.eval()
 class_correct = list(0. for i in range(args.num_classes))
 class_total = list(0. for i in range(args.num_classes))
 with torch.no_grad():
     for inputs, labels, _, _, _, _ in tqdm(val_loader):
+        inputs = inputs.to(device)
+        labels = labels.to(device)
         outputs = model(inputs)
         _, predicted = torch.max(outputs, 1)
         for i in range(len(labels)):
