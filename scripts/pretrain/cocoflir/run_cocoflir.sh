@@ -1,13 +1,13 @@
 model=$1
 if [ ! -n "$1" ]
 then 
-    echo 'pelease input the model para: {deit_base, deit_small, cvt}'
+    echo 'pelease input the model para: {deit_base, deit_small, cvt, t2t, cnn, vit}'
     exit 8
 fi
-if [ $model == 'cvt' ]
+if [ $model == 'cnn' ]
 then
-    model_type='cvt_21_224_TransReID'
-    pretrain_model='CvT-21-224x224-IN-1k.pth'
+    model_type='resnet101_ibn_a' #'t2t_vit_14'  
+    pretrain_model='resnet101-5d3b4d8f.pth' #'81.7_T2T_ViTt_14.pth' 
 else
     model='deit_small'
     model_type='vit_small_patch16_224_TransReID'
