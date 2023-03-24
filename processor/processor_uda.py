@@ -116,20 +116,50 @@ def update_feat(cfg, epoch, model, train_loader1,train_loader2, device,feat_memo
     
 # def filter_knnidx(tensor_x, indexs, threshold):
 #     return torch.where(tensor_x >=threshold, indexs, (-torch.ones(indexs.size())).long() )
+def long_matmul(x,y, chunk_size=1000, topk=2, target_sample_num=2):
+
+    knnidxs = torch.zeros(x.shape[0], dtype=torch.long)
+    knnidx_topks = torch.zeros(x.shape[0],target_sample_num, dtype=torch.long)
+    target_knnsims, target_knnidxs = torch.zeros((topk, y.shape[1]), dtype=x.dtype, device=x.device), \
+                             torch.zeros((topk, y.shape[1]), dtype=torch.long, device=x.device)
+    for i in tqdm(range(0,x.shape[0],chunk_size)):
+
+        chunk_size_i = min(chunk_size,x.shape[0]-i)
+
+        chunk = torch.matmul(x[i:i+chunk_size_i],y)
+        
+        _, knnidx = torch.max(chunk,1)
+        knnidxs[i:i+chunk_size_i] += knnidx
+
+
+        target_knnsim, target_knnidx = torch.topk(chunk, k=topk, dim=0, largest=True, sorted=False)
+
+        mask = target_knnsim > target_knnsims
+        target_knnsims[mask] = target_knnsim[mask]
+        target_knnidxs[mask] = target_knnidx[mask]+i
+
+        _, knnidx_topk = torch.topk(chunk,k=target_sample_num,dim=1)
+        knnidx_topks[i:i+chunk_size_i,:] += knnidx_topk
+    if topk==1:
+        target_knnsims = target_knnsims.flatten()
+        target_knnidxs = target_knnidxs.flatten()
+
+    return knnidxs, target_knnsims, target_knnidxs, knnidx_topks
 
 def compute_knn_idx(logger, model, train_loader1, train_loader2, feat_memory1, feat_memory2, label_memory1, label_memory2, img_num1, img_num2, target_sample_num=2, topk=1, reliable_threshold=0.0):
     #assert((torch.sum(feat_memory2,axis=1)!=0).all())
-    simmat = torch.matmul(feat_memory1,feat_memory2.T)
-    _, knnidx = torch.max(simmat,1)
+    # simmat = torch.matmul(feat_memory1,feat_memory2.T)
+    # _, knnidx = torch.max(simmat,1)
 
-    if topk == 1:
-        target_knnsim, target_knnidx = torch.max(simmat, 0)
-    else:
-        target_knnsim, target_knnidx = torch.topk(simmat,dim=0,k=topk)
-        target_knnsim, target_knnidx = target_knnsim[topk-1, :], target_knnidx[topk-1, :]
+    # if topk == 1:
+    #     target_knnsim, target_knnidx = torch.max(simmat, 0)
+    # else:
+    #     target_knnsim, target_knnidx = torch.topk(simmat,dim=0,k=topk)
+    #     target_knnsim, target_knnidx = target_knnsim[topk-1, :], target_knnidx[topk-1, :]
 
-    _, knnidx_topk = torch.topk(simmat,k=target_sample_num,dim=1)
-    del simmat
+    # _, knnidx_topk = torch.topk(simmat,k=target_sample_num,dim=1)
+    # del simmat
+    knnidx, target_knnsim, target_knnidx, knnidx_topk= long_matmul(feat_memory1,feat_memory2.t(), chunk_size=10000, topk=topk, target_sample_num=target_sample_num)
     count_target_usage(logger, knnidx, label_memory1, label_memory2, img_num1, img_num2)
 
     target_label = obtain_label(logger, train_loader2, model)
@@ -323,8 +353,8 @@ def do_train_uda(cfg,
             t_pseudo_target = vid[1].to(device)
             s_idx,t_idx = idx
             label_knn = label_memory2[t_idx].cuda()
-            print(img.shape)
-            print(t_img.shape)
+            # print(img.shape)
+            # print(t_img.shape)
             optimizer.zero_grad()
             optimizer_center.zero_grad()
   

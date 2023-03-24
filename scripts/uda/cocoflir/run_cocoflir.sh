@@ -34,7 +34,7 @@ DATASETS.ROOT_TRAIN_DIR2 '../test/sgada_data/flir.txt' \
 DATASETS.ROOT_TEST_DIR '../test/sgada_data/flir.txt' \
 DATASETS.NAMES "cocoflir" DATASETS.NAMES2 "cocoflir" \
 MODEL.Transformer_TYPE $model_type \
-MODEL.PRETRAIN_PATH './data/pretrainModel/'$pretrain_model \
+MODEL.PRETRAIN_PATH '../logs/pretrain/'$model'/coco-flir/mscoco/transformer_best_model.pth' \
 
 
 
