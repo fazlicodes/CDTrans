@@ -14,14 +14,17 @@ from .visda import VisDA
 from .domainnet import DomainNet
 from .office import Office
 from .coco_flir import CocoFlir
+from .flir import Flir
+
 
 __factory = {
     'OURAPI': OURAPI,
-    #'OfficeHome': OfficeHome,
+    'OfficeHome': OfficeHome,
     'VisDA': VisDA,
     'DomainNet': DomainNet,
     'Office': Office,
     'cocoflir': CocoFlir,
+    'flir': Flir,
 
 }
 

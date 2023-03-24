@@ -7,6 +7,7 @@ from .backbones.se_resnet_ibn_a import se_resnet101_ibn_a
 from .backbones.vit_pytorch import vit_base_patch16_224_TransReID, vit_small_patch16_224_TransReID
 from .backbones.cvt import cvt_21_224_TransReID
 from .backbones.t2t_vit import t2t_vit_14
+from .backbones.swin_transformer import swin_base_patch4_window7_224_TransReID,swin_small_patch4_window7_224_TransReID
 from .backbones.vit_pytorch_uda import uda_vit_base_patch16_224_TransReID, uda_vit_small_patch16_224_TransReID
 import torch.nn.functional as F
 from loss.metric_learning import Arcface, Cosface, AMSoftmax, CircleLoss
@@ -175,16 +176,25 @@ class build_transformer(nn.Module):
         self.neck_feat = cfg.TEST.NECK_FEAT
         self.task_type = cfg.MODEL.TASK_TYPE
         if '384' in cfg.MODEL.Transformer_TYPE or 'small' in cfg.MODEL.Transformer_TYPE:
-            self.in_planes = 384 
+            if 'swin' in cfg.MODEL.Transformer_TYPE:
+                self.in_planes = 1000
+            else:
+                self.in_planes = 384 
+        elif 'swin' in cfg.MODEL.Transformer_TYPE:
+            self.in_planes = 1000
         else:
             self.in_planes = 3
         self.bottleneck_dim = 256
         print('using Transformer_type: {} as a backbone'.format(cfg.MODEL.Transformer_TYPE))
         if cfg.MODEL.TASK_TYPE == 'classify_DA':
-            if cfg.MODEL.Transformer_TYPE == 't2t_vit_14':
-                self.base = factory[cfg.MODEL.Transformer_TYPE](stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
+            if 'swin' in cfg.MODEL.Transformer_TYPE:
+                self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, patch_size=cfg.MODEL.SWIN.PATCH_SIZE, 
+                                                depths=cfg.MODEL.SWIN.DEPTHS, stride_size=cfg.MODEL.STRIDE_SIZE, 
+                                                drop_path_rate=cfg.MODEL.DROP_PATH, num_heads=cfg.MODEL.SWIN.NUM_HEADS)
             else:
-                self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_TRAIN, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
+                self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
+        else:
+            self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_TRAIN, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
 
         self.gap = nn.AdaptiveAvgPool2d(1)
 
@@ -402,6 +412,9 @@ __factory_hh = {
     'vit_small_patch16_224_TransReID': vit_small_patch16_224_TransReID, 
     'cvt_21_224_TransReID': cvt_21_224_TransReID,
     't2t_vit_14': t2t_vit_14,
+    'vit_small_patch16_224_TransReID': vit_small_patch16_224_TransReID,
+    'swin_base_patch4_window7_224_TransReID': swin_base_patch4_window7_224_TransReID,
+    'swin_small_patch4_window7_224_TransReID': swin_small_patch4_window7_224_TransReID, 
     'uda_vit_small_patch16_224_TransReID': uda_vit_small_patch16_224_TransReID, 
     'uda_vit_base_patch16_224_TransReID': uda_vit_base_patch16_224_TransReID,
     'resnet101_ibn_a': resnet101_ibn_a

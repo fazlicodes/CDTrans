@@ -1,4 +1,6 @@
 *.zip
 *.pth
-*/__pycache__/*
-data
+data/
+__pycache__
+.ipynb_checkpoints
+.vscode
