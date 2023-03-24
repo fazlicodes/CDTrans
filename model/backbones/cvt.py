@@ -657,7 +657,7 @@ class ConvolutionalVisionTransformer(nn.Module):
 
 #     return model   
 
-def cvt_21_224_TransReID(pretrained = False, index=0):
+def cvt_21_224_TransReID(pretrained = False, index=0, **kwargs):
 
     msvit_spec = {
     "INIT": 'trunc_norm',

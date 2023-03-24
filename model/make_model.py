@@ -6,8 +6,6 @@ from .backbones.resnet_ibn_a import resnet50_ibn_a,resnet101_ibn_a
 from .backbones.se_resnet_ibn_a import se_resnet101_ibn_a
 from .backbones.vit_pytorch import vit_base_patch16_224_TransReID, vit_small_patch16_224_TransReID
 from .backbones.cvt import cvt_21_224_TransReID
-from .backbones.t2t_vit import t2t_vit_14
-from .backbones.swin_transformer import swin_base_patch4_window7_224_TransReID,swin_small_patch4_window7_224_TransReID
 from .backbones.vit_pytorch_uda import uda_vit_base_patch16_224_TransReID, uda_vit_small_patch16_224_TransReID
 import torch.nn.functional as F
 from loss.metric_learning import Arcface, Cosface, AMSoftmax, CircleLoss
@@ -176,23 +174,13 @@ class build_transformer(nn.Module):
         self.neck_feat = cfg.TEST.NECK_FEAT
         self.task_type = cfg.MODEL.TASK_TYPE
         if '384' in cfg.MODEL.Transformer_TYPE or 'small' in cfg.MODEL.Transformer_TYPE:
-            if 'swin' in cfg.MODEL.Transformer_TYPE:
-                self.in_planes = 1000
-            else:
-                self.in_planes = 384 
-        elif 'swin' in cfg.MODEL.Transformer_TYPE:
-            self.in_planes = 1000
+            self.in_planes = 384 
         else:
             self.in_planes = 3
         self.bottleneck_dim = 256
         print('using Transformer_type: {} as a backbone'.format(cfg.MODEL.Transformer_TYPE))
         if cfg.MODEL.TASK_TYPE == 'classify_DA':
-            if 'swin' in cfg.MODEL.Transformer_TYPE:
-                self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, patch_size=cfg.MODEL.SWIN.PATCH_SIZE, 
-                                                depths=cfg.MODEL.SWIN.DEPTHS, stride_size=cfg.MODEL.STRIDE_SIZE, 
-                                                drop_path_rate=cfg.MODEL.DROP_PATH, num_heads=cfg.MODEL.SWIN.NUM_HEADS)
-            else:
-                self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
+            self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
         else:
             self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_TRAIN, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
 
@@ -228,7 +216,6 @@ class build_transformer(nn.Module):
 
     def _load_parameter(self, pretrain_choice, model_path):
         if pretrain_choice == 'imagenet':
-            # print(model_path)
             self.base.load_param(model_path)
             print('Loading pretrained ImageNet model......from {}'.format(model_path))
         elif pretrain_choice == 'un_pretrain':
@@ -239,7 +226,7 @@ class build_transformer(nn.Module):
             print('Loading pretrained model......from {}'.format(model_path))
 
     def forward(self, x, label=None, cam_label= None, view_label=None, return_logits=False):  # label is unused if self.cos_layer == 'no'
-        global_feat = self.base(x)
+        global_feat = self.base(x, cam_label=cam_label, view_label=view_label)
         feat = self.bottleneck(global_feat)
         if return_logits:
             if self.cos_layer:
@@ -292,11 +279,10 @@ class build_uda_transformer(nn.Module):
         self.neck = cfg.MODEL.NECK
         self.neck_feat = cfg.TEST.NECK_FEAT
         self.task_type = cfg.MODEL.TASK_TYPE
-        self.in_planes = 384 if 'small' in cfg.MODEL.Transformer_TYPE else 3
+        self.in_planes = 384 if 'small' in cfg.MODEL.Transformer_TYPE else 768
         print('using Transformer_type: {} as a backbone'.format(cfg.MODEL.Transformer_TYPE))
         if cfg.MODEL.TASK_TYPE == 'classify_DA':
-            # self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH, block_pattern=cfg.MODEL.BLOCK_PATTERN)
-            self.base = factory[cfg.MODEL.Transformer_TYPE]()
+            self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH, block_pattern=cfg.MODEL.BLOCK_PATTERN)
         else:
             self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_TRAIN, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH, use_cross=cfg.MODEL.USE_CROSS, use_attn=cfg.MODEL.USE_ATTN,  block_pattern=cfg.MODEL.BLOCK_PATTERN)
 
@@ -412,13 +398,10 @@ __factory_hh = {
     'vit_base_patch16_224_TransReID': vit_base_patch16_224_TransReID,
     'vit_small_patch16_224_TransReID': vit_small_patch16_224_TransReID, 
     'cvt_21_224_TransReID': cvt_21_224_TransReID,
-    't2t_vit_14': t2t_vit_14,
-    'vit_small_patch16_224_TransReID': vit_small_patch16_224_TransReID,
-    'swin_base_patch4_window7_224_TransReID': swin_base_patch4_window7_224_TransReID,
-    'swin_small_patch4_window7_224_TransReID': swin_small_patch4_window7_224_TransReID, 
     'uda_vit_small_patch16_224_TransReID': uda_vit_small_patch16_224_TransReID, 
     'uda_vit_base_patch16_224_TransReID': uda_vit_base_patch16_224_TransReID,
-    'resnet101_ibn_a': resnet101_ibn_a
+
+    # 'resnet101': resnet101,
 }
 
 def make_model(cfg, num_class, camera_num, view_num):
