@@ -25,8 +25,8 @@ else
 fi
 python train.py --config_file configs/pretrain.yml MODEL.DEVICE_ID "('0')" DATASETS.NAMES 'cocoflir' \
 OUTPUT_DIR '../logs/pretrain/'$model'/coco-flir/mscoco' \
-DATASETS.ROOT_TRAIN_DIR './data/cocoflir/mscoco.txt' \
-DATASETS.ROOT_TEST_DIR './data/cocoflir/flir.txt'   \
+DATASETS.ROOT_TRAIN_DIR '../test/sgada_data/mscoco.txt' \
+DATASETS.ROOT_TEST_DIR '../test/sgada_data/flir.txt'   \
 MODEL.Transformer_TYPE $model_type \
 MODEL.PRETRAIN_PATH './data/pretrainModel/'$pretrain_model \
 

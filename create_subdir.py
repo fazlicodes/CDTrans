@@ -3,19 +3,36 @@ import shutil
 import random
 from tqdm import tqdm
 import pandas as pd
+import argparse
+
+parser = argparse.ArgumentParser(description='Create a sample dataset from a parent dataset.')
+parser.add_argument('--data_dir', type=str, help='Path to the parent directory of the subdirectory of classes.')
+parser.add_argument('--sub_dir', type=str, default='subdirectory_name', help='Name of the subdirectory of classes. Default is "subdirectory_name".')
+parser.add_argument('--subset_size', type=int, default=50, help='Desired size of the subset dataset. Default is 50.')
+
+args = parser.parse_args()
+
+# Set the path to the parent directory of the subdirectory of classes
+data_dir = args.data_dir
+
+# Set the name of the subdirectory of classes
+subset_dir = args.sub_dir
+
+# Set the desired size of the subset dataset
+subset_size = args.subset_size
 
 # Set the path to the directory containing the subdirectories of classes
-data_dir = "../test/sgada_data/"
+# data_dir = "../test/sgada_data/"
 
 # Set the path to the directory where you want to save the subset dataset
-subset_dir = "../test/sample_coco/"
+# subset_dir = "./data/cocoflir"
 
 # Create the subset directory if it doesn't exist
 if not os.path.exists(subset_dir):
     os.mkdir(subset_dir)
      
 # Set the size of the subset dataset
-subset_size = 100
+# subset_size = 100
 
 
 
