@@ -19,7 +19,7 @@ from .flir import Flir
 
 __factory = {
     'OURAPI': OURAPI,
-    'OfficeHome': OfficeHome,
+    #'OfficeHome': OfficeHome,
     'VisDA': VisDA,
     'DomainNet': DomainNet,
     'Office': Office,
