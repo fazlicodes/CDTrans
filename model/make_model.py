@@ -6,6 +6,7 @@ from .backbones.resnet_ibn_a import resnet50_ibn_a,resnet101_ibn_a
 from .backbones.se_resnet_ibn_a import se_resnet101_ibn_a
 from .backbones.vit_pytorch import vit_base_patch16_224_TransReID, vit_small_patch16_224_TransReID
 from .backbones.swin_transformer import swin_base_patch4_window7_224_TransReID,swin_small_patch4_window7_224_TransReID
+from .backbones.swin_transformer_uda import uda_swin_base_patch4_window7_224_TransReID,uda_swin_small_patch4_window7_224_TransReID
 from .backbones.vit_pytorch_uda import uda_vit_base_patch16_224_TransReID, uda_vit_small_patch16_224_TransReID
 import torch.nn.functional as F
 from loss.metric_learning import Arcface, Cosface, AMSoftmax, CircleLoss
@@ -270,6 +271,7 @@ class build_transformer(nn.Module):
 
     def load_param_finetune(self, model_path):
         param_dict = torch.load(model_path)
+        print(param_dict.shape)
         for i in param_dict:
             if 'module.' in i: new_i = i.replace('module.','') 
             else: new_i = i 
@@ -290,8 +292,18 @@ class build_uda_transformer(nn.Module):
         self.neck_feat = cfg.TEST.NECK_FEAT
         self.task_type = cfg.MODEL.TASK_TYPE
         self.in_planes = 384 if 'small' in cfg.MODEL.Transformer_TYPE else 768
+
+        # if 'swin' in cfg.MODEL.Transformer_TYPE:
+        #         self.in_planes = 384
+        
         print('using Transformer_type: {} as a backbone'.format(cfg.MODEL.Transformer_TYPE))
         if cfg.MODEL.TASK_TYPE == 'classify_DA':
+            if 'swin' in cfg.MODEL.Transformer_TYPE:
+                self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, patch_size=cfg.MODEL.SWIN.PATCH_SIZE, 
+                                                depths=cfg.MODEL.SWIN.DEPTHS, stride_size=cfg.MODEL.STRIDE_SIZE, 
+                                                drop_path_rate=cfg.MODEL.DROP_PATH, num_heads=cfg.MODEL.SWIN.NUM_HEADS, block_pattern=cfg.MODEL.BLOCK_PATTERN)
+            else:
+                self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH, block_pattern=cfg.MODEL.BLOCK_PATTERN)
             self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH, block_pattern=cfg.MODEL.BLOCK_PATTERN)
         else:
             self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_TRAIN, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH, use_cross=cfg.MODEL.USE_CROSS, use_attn=cfg.MODEL.USE_ATTN,  block_pattern=cfg.MODEL.BLOCK_PATTERN)
@@ -408,7 +420,9 @@ __factory_hh = {
     'vit_base_patch16_224_TransReID': vit_base_patch16_224_TransReID,
     'vit_small_patch16_224_TransReID': vit_small_patch16_224_TransReID,
     'swin_base_patch4_window7_224_TransReID': swin_base_patch4_window7_224_TransReID,
-    'swin_small_patch4_window7_224_TransReID': swin_small_patch4_window7_224_TransReID, 
+    'swin_small_patch4_window7_224_TransReID': swin_small_patch4_window7_224_TransReID,
+    'uda_swin_base_patch4_window7_224_TransReID': uda_swin_base_patch4_window7_224_TransReID,
+    'uda_swin_small_patch4_window7_224_TransReID': uda_swin_small_patch4_window7_224_TransReID,  
     'uda_vit_small_patch16_224_TransReID': uda_vit_small_patch16_224_TransReID, 
     'uda_vit_base_patch16_224_TransReID': uda_vit_base_patch16_224_TransReID,
     # 'resnet101': resnet101,

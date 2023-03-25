@@ -12,13 +12,13 @@ then
 elif [ $model == 'swin_small' ]
 then
     model='swin_small'
-    model_type='swin_small_patch4_window7_224_TransReID'
+    model_type='uda_swin_small_patch4_window7_224_TransReID'
     pretrain_model='swin_small_patch4_window7_224_22k.pth'
     gpus="('0,1')"
 elif [ $model == 'swin_base' ]
 then
     model='swin_base'
-    model_type='swin_base_patch4_window7_224_TransReID'
+    model_type='uda_swin_base_patch4_window7_224_TransReID'
     pretrain_model='swin_base_patch4_window7_224_22k.pth'
 else
     model='deit_small'
@@ -34,7 +34,7 @@ DATASETS.ROOT_TRAIN_DIR2 '../test/sgada_data/flir.txt' \
 DATASETS.ROOT_TEST_DIR '../test/sgada_data/flir.txt' \
 DATASETS.NAMES "cocoflir" DATASETS.NAMES2 "cocoflir" \
 MODEL.Transformer_TYPE $model_type \
-MODEL.PRETRAIN_PATH '../logs/pretrain/'$model'/coco-flir/mscoco/transformer_best_model.pth' \
+
 
 
 

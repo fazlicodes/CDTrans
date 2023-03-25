@@ -549,8 +549,11 @@ def do_inference_uda(cfg,
         model.to(device)
 
     model.eval()
+    class_correct = list(0. for i in range(3))
+    class_total = list(0. for i in range(3))
+    pred_counts = list(0. for i in range(3))
     img_path_list = []
-    for n_iter, (img, vid, camid, camids, target_view, _) in enumerate(val_loader):
+    for n_iter, (img, vid, camid, camids, target_view, _) in tqdm(enumerate(val_loader)):
             with torch.no_grad():
                 img = img.to(device)
                 camids = camids.to(device)
@@ -559,7 +562,19 @@ def do_inference_uda(cfg,
                 
                 if cfg.MODEL.TASK_TYPE == 'classify_DA':
                     probs = model(img, img, cam_label=camids, view_label=target_view, return_logits=True)
+                    _, predicted = torch.max(probs[1], 1)
+                    # print("Shape of "+str(predicted.shape))
+                    # print (predicted)
+                    # pred_counts += torch.bincount(predicted)
+                    # print ("Bin counts for 0")
+                    # print (len(torch.bincount(predicted)))
+                    # print (len(pred_counts))
                     evaluator.update((probs[1], vid))
+                    for i in range(len(vid)):
+                        label = vid[i]
+                        pred_counts[predicted[i]] += 1
+                        class_correct[label] += (predicted[i] == label).item()
+                        class_total[label] += 1
                 else:
                     feat1, feat2 = model(img, img, cam_label=camids, view_label=target_view, return_logits=False)
                     evaluator.update((feat2, vid, camid))
@@ -569,6 +584,14 @@ def do_inference_uda(cfg,
             accuracy, mean_ent = evaluator.compute()  
             logger.info("Classify Domain Adapatation Validation Results - In the source trained model")
             logger.info("Accuracy: {:.1%}".format(accuracy))
+            for i in range(3):
+                if class_total[i] > 0:
+                    logger.info('Accuracy of class %d: %2d%% (%2d/%2d)' % (
+                        i, 100 * class_correct[i] / class_total[i],
+                        class_correct[i], class_total[i]))
+                else:
+                    print('Accuracy of class %d: N/A (no examples in class)' % (i))
+            print(pred_counts)
             return 
         else:
             cmc, mAP, _, _, _, _, _ = evaluator.compute()
@@ -588,3 +611,10 @@ def do_inference_uda(cfg,
         np.save(os.path.join(cfg.OUTPUT_DIR, 'image_name.npy'), img_name_path)
         np.save(os.path.join(cfg.OUTPUT_DIR, 'view_label.npy'), viewids)
         print('over')
+    for i in range(3):
+        if class_total[i] > 0:
+            logger.info('Accuracy of class %d: %2d%% (%2d/%2d)' % (
+                i, 100 * class_correct[i] / class_total[i],
+                class_correct[i], class_total[i]))
+        else:
+            print('Accuracy of class %d: N/A (no examples in class)' % (i))

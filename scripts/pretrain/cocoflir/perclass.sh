@@ -16,19 +16,20 @@ then
 elif [ $model == 'deit_small' ]
 then
     model='deit_small'
-    model_type='vit_small_patch16_224_TransReID'
-    pretrain_model='deit_small_distilled_patch16_224-649709d9.pth'
+    model_type='uda_vit_small_patch16_224_TransReID'
+    pretrain_model='uda_deit_small_distilled_patch16_224-649709d9.pth'
 else
     model='swin_base'
     model_type='swin_base_patch4_window7_224_TransReID'
     pretrain_model='swin_base_patch4_window7_224_22k.pth'
 fi
-python test_new.py --config_file configs/pretrain.yml --num_classes 3 --model_path '../logs/pretrain/'$model'/coco-flir/mscoco/transformer_best_model.pth' MODEL.DEVICE_ID "('0')" DATASETS.NAMES 'flir' \
+python test.py --config_file configs/uda.yml MODEL.DEVICE_ID "('0')" \
 OUTPUT_DIR '../logs/target/perclass/'$model'/coco-flir/flir' \
-DATASETS.ROOT_TRAIN_DIR './data/cocoflir/train_labels.txt' \
-DATASETS.ROOT_TEST_DIR './data/cocoflir/val_labels.txt'   \
+DATASETS.ROOT_TRAIN_DIR '../test/sgada_data/mscoco.txt' \
+DATASETS.ROOT_TRAIN_DIR2 '../test/sgada_data/flir.txt' \
+DATASETS.ROOT_TEST_DIR '../test/sgada_data/flir.txt'   \
 MODEL.Transformer_TYPE $model_type \
-MODEL.PRETRAIN_PATH './data/pretrainModel/'$pretrain_model \
-TEST.WEIGHT '../logs/pretrain/'$model'/coco-flir/mscoco/transformer_best_model.pth' \
+DATASETS.NAMES "cocoflir" DATASETS.NAMES2 "cocoflir" \
+TEST.WEIGHT '../logs/uda/'$model'/coco-flir/mscoco/transformer_best_model.pth' \
 
 

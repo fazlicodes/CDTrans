@@ -6,8 +6,8 @@ import pandas as pd
 import argparse
 
 parser = argparse.ArgumentParser(description='Create a sample dataset from a parent dataset.')
-parser.add_argument('--data_dir', type=str, help='Path to the parent directory of the subdirectory of classes.')
-parser.add_argument('--sub_dir', type=str, default='subdirectory_name', help='Name of the subdirectory of classes. Default is "subdirectory_name".')
+parser.add_argument('--data_dir', type=str, default= '../test/sgada_data', help='Path to the parent directory of the subdirectory of classes.')
+parser.add_argument('--sub_dir', type=str, default='../test/cocoflir_2', help='Name of the subdirectory of classes. Default is "subdirectory_name".')
 parser.add_argument('--subset_size', type=int, default=50, help='Desired size of the subset dataset. Default is 50.')
 
 args = parser.parse_args()
@@ -74,6 +74,10 @@ for i in cat:
         print(cls_dir)
         files = os.listdir(cls_dir)
 
+        if cls == 'bicycle':
+             subset_size = len(files)
+        elif cls=='car' or cls=='person':
+             subset_size=38000
         # Choose a random subset of files from the class subdirectory
         subset = random.sample(files, min(subset_size, len(files)))
 
