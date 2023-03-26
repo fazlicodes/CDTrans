@@ -617,7 +617,7 @@ class SwinTransformer(nn.Module):
         flops += self.num_features * self.num_classes
         return flops
 
-    def load_pretrained(self, model, model_path, logger):
+    def load_pretrained(self, model, model_path, logger=None):
 
         
         checkpoint = torch.load(model_path, map_location='cpu')
@@ -646,7 +646,8 @@ class SwinTransformer(nn.Module):
             L1, nH1 = relative_position_bias_table_pretrained.size()
             L2, nH2 = relative_position_bias_table_current.size()
             if nH1 != nH2:
-                logger.warning(f"Error in loading {k}, passing......")
+                # logger.warning(f"Error in loading {k}, passing......")
+                print(f"Error in loading {k}, passing......")
             else:
                 if L1 != L2:
                     # bicubic interpolate relative_position_bias_table if not match
@@ -666,7 +667,8 @@ class SwinTransformer(nn.Module):
             _, L1, C1 = absolute_pos_embed_pretrained.size()
             _, L2, C2 = absolute_pos_embed_current.size()
             if C1 != C1:
-                logger.warning(f"Error in loading {k}, passing......")
+                # logger.warning(f"Error in loading {k}, passing......")
+                print(f"Error in loading {k}, passing......")
             else:
                 if L1 != L2:
                     S1 = int(L1 ** 0.5)
@@ -697,7 +699,8 @@ class SwinTransformer(nn.Module):
                 torch.nn.init.constant_(model.head.weight, 0.)
                 del state_dict['head.weight']
                 del state_dict['head.bias']
-                logger.warning(f"Error in loading classifier head, re-init classifier head to 0")
+                # logger.warning(f"Error in loading classifier head, re-init classifier head to 0")
+                print(f"Error in loading classifier head, re-init classifier head to 0")
 
         msg = model.load_state_dict(state_dict, strict=False)
 
