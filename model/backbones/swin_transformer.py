@@ -666,7 +666,7 @@ class SwinTransformer(nn.Module):
             absolute_pos_embed_current = model.state_dict()[k]
             _, L1, C1 = absolute_pos_embed_pretrained.size()
             _, L2, C2 = absolute_pos_embed_current.size()
-            if C1 != C1:
+            if C1 != C2:
                 # logger.warning(f"Error in loading {k}, passing......")
                 print(f"Error in loading {k}, passing......")
             else:
@@ -687,7 +687,8 @@ class SwinTransformer(nn.Module):
         Nc2 = model.head.bias.shape[0]
         if (Nc1 != Nc2):
             if Nc1 == 21841 and Nc2 == 1000:
-                logger.info("loading ImageNet-22K weight to ImageNet-1K ......")
+                # logger.info("loading ImageNet-22K weight to ImageNet-1K ......")
+                print("loading ImageNet-22K weight to ImageNet-1K ......")
                 map22kto1k_path = f'data/map22kto1k.txt'
                 with open(map22kto1k_path) as f:
                     map22kto1k = f.readlines()
