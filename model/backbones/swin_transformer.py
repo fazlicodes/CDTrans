@@ -685,6 +685,7 @@ class SwinTransformer(nn.Module):
         head_bias_pretrained = state_dict['head.bias']
         Nc1 = head_bias_pretrained.shape[0]
         Nc2 = model.head.bias.shape[0]
+        print(Nc2)
         if (Nc1 != Nc2):
             if Nc1 == 21841 and Nc2 == 1000:
                 # logger.info("loading ImageNet-22K weight to ImageNet-1K ......")
