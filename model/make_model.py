@@ -176,13 +176,15 @@ class build_transformer(nn.Module):
         self.task_type = cfg.MODEL.TASK_TYPE
         if '384' in cfg.MODEL.Transformer_TYPE or 'small' in cfg.MODEL.Transformer_TYPE:
             if 'swin' in cfg.MODEL.Transformer_TYPE:
-                self.in_planes = 1000
+                self.in_planes = int(96 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))
             else:
                 self.in_planes = 384 
-        elif 'swin' in cfg.MODEL.Transformer_TYPE:
-            self.in_planes = 1000
+       
         else:
-            self.in_planes = 768
+            if 'swin' in cfg.MODEL.Transformer_TYPE:
+                self.in_planes = int(128 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))
+            else:
+                self.in_planes = 768
         self.bottleneck_dim = 256
         print('using Transformer_type: {} as a backbone'.format(cfg.MODEL.Transformer_TYPE))
         if cfg.MODEL.TASK_TYPE == 'classify_DA':
