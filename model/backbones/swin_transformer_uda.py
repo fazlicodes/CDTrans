@@ -716,7 +716,7 @@ class SwinTransformer(nn.Module):
 
         x = self.pos_drop(x)
         x2 = self.pos_drop(x2)
-        print(self.block_pattern)
+        
         if self.block_pattern == '3_branches':
             x1_x2_fusion = x2
             cross_attn_list = []
