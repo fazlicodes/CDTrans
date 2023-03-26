@@ -311,11 +311,19 @@ def do_train_uda(cfg,
     label_memory1 = torch.zeros((img_num1),dtype=torch.long)
     label_memory2 = torch.zeros((img_num2),dtype=torch.long)
     if '384' in cfg.MODEL.Transformer_TYPE or 'small' in cfg.MODEL.Transformer_TYPE:
-        feat_memory1 = torch.zeros((img_num1,384),dtype=torch.float32)
-        feat_memory2 = torch.zeros((img_num2,384),dtype=torch.float32)
+        if 'swin' in cfg.MODEL.Transformer_TYPE:
+            feat_memory1 = torch.zeros((img_num1,int(96 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))),dtype=torch.float32)
+            feat_memory2 = torch.zeros((img_num2,int(96 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))),dtype=torch.float32)
+        else:
+            feat_memory1 = torch.zeros((img_num1,384),dtype=torch.float32)
+            feat_memory2 = torch.zeros((img_num2,384),dtype=torch.float32)
     else:
-        feat_memory1 = torch.zeros((img_num1,768),dtype=torch.float32)
-        feat_memory2 = torch.zeros((img_num2,768),dtype=torch.float32)
+        if 'swin' in cfg.MODEL.Transformer_TYPE:
+            feat_memory1 = torch.zeros((img_num1,int(128 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))),dtype=torch.float32)
+            feat_memory2 = torch.zeros((img_num2,int(128 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))),dtype=torch.float32)
+        else:
+            feat_memory1 = torch.zeros((img_num1,768),dtype=torch.float32)
+            feat_memory2 = torch.zeros((img_num2,768),dtype=torch.float32)
     update_epoch = 10  #10
     
     best_model_mAP = 0
