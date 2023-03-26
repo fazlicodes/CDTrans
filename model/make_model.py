@@ -251,6 +251,7 @@ class build_transformer(nn.Module):
 
     def forward(self, x, label=None, cam_label= None, view_label=None, return_logits=False):  # label is unused if self.cos_layer == 'no'
         global_feat = self.base(x, cam_label=cam_label, view_label=view_label)
+        print(global_feat.shape)
         feat = self.bottleneck(global_feat)
         if return_logits:
             if self.cos_layer:
