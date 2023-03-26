@@ -190,13 +190,23 @@ class build_transformer(nn.Module):
         print('using Transformer_type: {} as a backbone'.format(cfg.MODEL.Transformer_TYPE))
         if cfg.MODEL.TASK_TYPE == 'classify_DA':
             if 'swin' in cfg.MODEL.Transformer_TYPE:
-                self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, patch_size=cfg.MODEL.SWIN.PATCH_SIZE, 
-                                                depths=cfg.MODEL.SWIN.DEPTHS, stride_size=cfg.MODEL.STRIDE_SIZE, 
-                                                drop_path_rate=cfg.MODEL.DROP_PATH, num_heads=cfg.MODEL.SWIN.NUM_HEADS)
+                self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, 
+                                                                patch_size=cfg.MODEL.SWIN.PATCH_SIZE, 
+                                                                depths=cfg.MODEL.SWIN.DEPTHS, 
+                                                                stride_size=cfg.MODEL.STRIDE_SIZE, 
+                                                                drop_path_rate=cfg.MODEL.DROP_PATH)
             else:
-                self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
+                self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, 
+                                                                aie_xishu=cfg.MODEL.AIE_COE,
+                                                                local_feature=cfg.MODEL.LOCAL_F, 
+                                                                stride_size=cfg.MODEL.STRIDE_SIZE, 
+                                                                drop_path_rate=cfg.MODEL.DROP_PATH)
         else:
-            self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_TRAIN, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
+            self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_TRAIN, 
+                                                            aie_xishu=cfg.MODEL.AIE_COE,
+                                                            local_feature=cfg.MODEL.LOCAL_F, 
+                                                            stride_size=cfg.MODEL.STRIDE_SIZE, 
+                                                            drop_path_rate=cfg.MODEL.DROP_PATH)
 
         self.gap = nn.AdaptiveAvgPool2d(1)
 
