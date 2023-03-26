@@ -605,7 +605,7 @@ class SwinTransformer(nn.Module):
 
     def forward(self, x, cam_label=None, view_label=None):
         x = self.forward_features(x, cam_label, view_label)
-        x = self.head(x)
+        # x = self.head(x)
         return x
 
     def flops(self):
