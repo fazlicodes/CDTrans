@@ -240,7 +240,7 @@ class build_transformer(nn.Module):
 
     def _load_parameter(self, pretrain_choice, model_path):
         if pretrain_choice == 'imagenet':
-            self.base.load_pretrained(self.base, model_path)
+            self.base.load_param(model_path)
             print('Loading pretrained ImageNet model......from {}'.format(model_path))
         elif pretrain_choice == 'un_pretrain':
             self.base.load_un_param(model_path)
@@ -447,8 +447,8 @@ class build_uda_transformer(nn.Module):
             if new_i not in self.state_dict().keys():
                 print('model parameter: {} not match'.format(new_i))
                 continue
+            print(self.state_dict()[new_i].shape)
             self.state_dict()[new_i].copy_(param_dict[i])
-
         print('Loading pretrained model for finetuning from {}'.format(model_path))
 
 
