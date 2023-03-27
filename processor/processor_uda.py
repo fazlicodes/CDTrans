@@ -28,6 +28,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from scipy.optimize import linear_sum_assignment
 from collections  import defaultdict
+import pandas as pd
 
 def obtain_label(logger, val_loader, model, distance='cosine', threshold=0):
     device = "cuda"
@@ -111,6 +112,7 @@ def update_feat(cfg, epoch, model, train_loader1,train_loader2, device,feat_memo
             feat_memory2[idx] = feat.detach().cpu()
             label_memory2[idx] = vid
 
+    # pd.DataFrame(torch.stack(feat_memory1, feat_memory2)).to_csv('../logs/feature_mscoco_flir_swin.csv')
 
     return feat_memory1, feat_memory2, label_memory1, label_memory2
     
