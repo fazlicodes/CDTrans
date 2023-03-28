@@ -6,19 +6,19 @@ then
 fi
 if [ $model == 'deit_base' ]
 then
-    model_type='uda_vit_base_patch16_224_TransReID'
+    model_type='vit_base_patch16_224_TransReID'
     pretrain_model='deit_base_distilled_patch16_224-df68dfff.pth'
     gpus="('0,1')"
 elif [ $model == 'swin_small' ]
 then
     model='swin_small'
-    model_type='uda_swin_small_patch4_window7_224_TransReID'
-    pretrain_model='swin_small_patch4_window7_224_22k.pth'
+    model_type='swin_small_patch4_window7_224_TransReID'
+    pretrain_model='small_patch4_window7_224_22k.pth'
     gpus="('0,1')"
 elif [ $model == 'swin_base' ]
 then
     model='swin_base'
-    model_type='uda_swin_base_patch4_window7_224_TransReID'
+    model_type='swin_base_patch4_window7_224_TransReID'
     pretrain_model='swin_base_patch4_window7_224_22k.pth'
 else
     model='deit_small'
@@ -27,11 +27,11 @@ else
     gpus="('0')"
 fi
 
-python train.py --config_file configs/uda.yml MODEL.DEVICE_ID $gpus \
-OUTPUT_DIR '../logs/uda/'$model'/coco-flir/mscoco' \
+python train.py --config_file configs/pretrain.yml MODEL.DEVICE_ID $gpus \
+OUTPUT_DIR '../logs/uda/'$model'/coco-flir/flir' \
 DATASETS.ROOT_TRAIN_DIR './data/cocoflir/mscoco.txt' \
 DATASETS.ROOT_TRAIN_DIR2 './data/cocoflir/flir.txt' \
 DATASETS.ROOT_TEST_DIR './data/cocoflir/flir.txt' \
 DATASETS.NAMES "cocoflir" DATASETS.NAMES2 "cocoflir" \
 MODEL.Transformer_TYPE $model_type \
-MODEL.PRETRAIN_PATH '../logs/pretrain/'$model'/coco-flir/mscoco/transformer_best_model.pth' \
+MODEL.PRETRAIN_PATH './data/pretrainModel/'$pretrain_model \
