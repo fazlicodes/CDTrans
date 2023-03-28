@@ -74,7 +74,7 @@ class Mlp(nn.Module):
         return x
 
 
-class Attention(nn.Module):
+class Attention_3_branches(nn.Module):
     def __init__(self,
                  dim_in,
                  dim_out,
@@ -187,21 +187,34 @@ class Attention(nn.Module):
 
         return q, k, v
 
-    def forward(self, x, h, w):
+    def forward(self, x, x2, h, w, use_attn=True, inference_target_only=False):
         if (
             self.conv_proj_q is not None
             or self.conv_proj_k is not None
             or self.conv_proj_v is not None
         ):
             q, k, v = self.forward_conv(x, h, w)
+            q2, k2, v2 = self.forward_conv(x2, h, w)
 
         q = rearrange(self.proj_q(q), 'b t (h d) -> b h t d', h=self.num_heads)
         k = rearrange(self.proj_k(k), 'b t (h d) -> b h t d', h=self.num_heads)
         v = rearrange(self.proj_v(v), 'b t (h d) -> b h t d', h=self.num_heads)
 
+        q2 = rearrange(self.proj_q(q2), 'b t (h d) -> b h t d', h=self.num_heads)
+        k2 = rearrange(self.proj_k(k2), 'b t (h d) -> b h t d', h=self.num_heads)
+        v2 = rearrange(self.proj_v(v2), 'b t (h d) -> b h t d', h=self.num_heads)
+
         attn_score = torch.einsum('bhlk,bhtk->bhlt', [q, k]) * self.scale
         attn = F.softmax(attn_score, dim=-1)
         attn = self.attn_drop(attn)
+
+        attn_score2 = torch.einsum('bhlk,bhtk->bhlt', [q2, k2]) * self.scale
+        attn2 = F.softmax(attn_score2, dim=-1)
+        attn2 = self.attn_drop(attn2)
+
+        attn_score3 = torch.einsum('bhlk,bhtk->bhlt', [q, k2]) * self.scale
+        attn3 = F.softmax(attn_score3, dim=-1)
+        attn3= self.attn_drop(attn3)
 
         x = torch.einsum('bhlt,bhtv->bhlv', [attn, v])
         x = rearrange(x, 'b h t d -> b t (h d)')
@@ -209,7 +222,19 @@ class Attention(nn.Module):
         x = self.proj(x)
         x = self.proj_drop(x)
 
-        return x
+        x2 = torch.einsum('bhlt,bhtv->bhlv', [attn2, v2])
+        x2 = rearrange(x2, 'b h t d -> b t (h d)')
+
+        x2 = self.proj(x2)
+        x2 = self.proj_drop(x2)
+
+        x3 = torch.einsum('bhlt,bhtv->bhlv', [attn3, v2])
+        x3 = rearrange(x3, 'b h t d -> b t (h d)')
+
+        x3 = self.proj(x3)
+        x3 = self.proj_drop(x3)
+
+        return x, x2, x3, None
 
     @staticmethod
     def compute_macs(module, input, output):
@@ -286,7 +311,7 @@ class Attention(nn.Module):
         module.__flops__ += flops
 
 
-class Block(nn.Module):
+class Block_3_branches(nn.Module):
 
     def __init__(self,
                  dim_in,
@@ -305,7 +330,7 @@ class Block(nn.Module):
         self.with_cls_token = kwargs['with_cls_token']
 
         self.norm1 = norm_layer(dim_in)
-        self.attn = Attention(
+        self.attn = Attention_3_branches(
             dim_in, dim_out, num_heads, qkv_bias, attn_drop, drop,
             **kwargs
         )
@@ -322,15 +347,35 @@ class Block(nn.Module):
             drop=drop
         )
 
-    def forward(self, x, h, w):
-        res = x
+    def forward(self, x, x2, x1_x2_fusion, h, w, use_cross=False, use_attn=True, domain_norm=False,inference_target_only=False):
+        if inference_target_only:
+            res = x2
 
-        x = self.norm1(x)
-        attn = self.attn(x, h, w)
-        x = res + self.drop_path(attn)
-        x = x + self.drop_path(self.mlp(self.norm2(x)))
+            # x2 = self.norm1(x2)
+            _, xa_attn2, _, _ = self.attn(None,self.norm1(x2), h, w, inference_target_only=inference_target_only)
+            xb = res + self.drop_path(xa_attn2)
+            xb = xb + self.drop_path(self.mlp(self.norm2(xb)))
+            xa, xab, cross_attn = None, None, None
+        
+        else:
+            res = x
+            res2 = x2
+            res3 = x1_x2_fusion
 
-        return x
+            # x2 = self.norm1(x2)
+            xa_attn, xa_attn2, xa_attn3, cross_attn = self.attn(self.norm1(x),self.norm1(x2), h, w, inference_target_only=inference_target_only)
+
+            xa = res + self.drop_path(xa_attn)
+            xa = xa + self.drop_path(self.mlp(self.norm2(xa)))
+            
+            xb = res2 + self.drop_path(xa_attn2)
+            xb = xb + self.drop_path(self.mlp(self.norm2(xb)))
+            
+            xab = res3 + self.drop_path(xa_attn3)
+            xab = xab + self.drop_path(self.mlp(self.norm2(xab)))
+            
+
+        return xa, xb, xab, cross_attn
 
 
 class ConvEmbed(nn.Module):
@@ -369,7 +414,7 @@ class ConvEmbed(nn.Module):
         return x
 
 
-class VisionTransformer(nn.Module):
+class VisionTransformer_3_branches(nn.Module):
     """ Vision Transformer with support for patch or hybrid CNN input stage
     """
     def __init__(self,
@@ -418,7 +463,7 @@ class VisionTransformer(nn.Module):
         blocks = []
         for j in range(depth):
             blocks.append(
-                Block(
+                Block_3_branches(
                     dim_in=embed_dim,
                     dim_out=embed_dim,
                     num_heads=num_heads,
@@ -464,40 +509,57 @@ class VisionTransformer(nn.Module):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
 
-    def forward(self, x):
+    def forward(self, x, x2,cross_attn_list, use_cross=False, use_attn=True, domain_norm=False,inference_target_only=False):
         x = self.patch_embed(x)
+        x2 = self.patch_embed(x2)
+
         B, C, H, W = x.size()
 
         x = rearrange(x, 'b c h w -> b (h w) c')
+        x2 = rearrange(x2, 'b c h w -> b (h w) c')
 
         cls_tokens = None
+        cls_tokens2 = None
+        cls_tokens3 = None
+
         if self.cls_token is not None:
             # stole cls_tokens impl from Phil Wang, thanks
             cls_tokens = self.cls_token.expand(B, -1, -1)
             x = torch.cat((cls_tokens, x), dim=1)
+            x2 = torch.cat((cls_tokens, x2), dim=1)
 
         x = self.pos_drop(x)
+        x2 = self.pos_drop(x2)
+        x1_x2_fusion = x2
 
         for i, blk in enumerate(self.blocks):
-            x = blk(x, H, W)
+            x,x2,x1_x2_fusion, cross_attn = blk(x,x2,x1_x2_fusion, H, W, use_cross=use_cross,use_attn=use_attn, domain_norm=domain_norm, inference_target_only=inference_target_only)
+            cross_attn_list.append(cross_attn)
 
         if self.cls_token is not None:
             cls_tokens, x = torch.split(x, [1, H*W], 1)
+            cls_tokens2, x2 = torch.split(x2, [1, H*W], 1)
+            cls_tokens3, x1_x2_fusion = torch.split(x1_x2_fusion, [1, H*W], 1)
         x = rearrange(x, 'b (h w) c -> b c h w', h=H, w=W)
+        x2 = rearrange(x2, 'b (h w) c -> b c h w', h=H, w=W)
+        x1_x2_fusion = rearrange(x1_x2_fusion, 'b (h w) c -> b c h w', h=H, w=W)
 
-        return x, cls_tokens
+        return x, x2, x1_x2_fusion, cls_tokens, cls_tokens2, cls_tokens3, cross_attn_list
 
 
-class ConvolutionalVisionTransformer(nn.Module):
+class ConvolutionalVisionTransformer_3_branches(nn.Module):
     def __init__(self,
                  in_chans=3,
-                 num_classes=1000,
+                 num_classes=3,
                  act_layer=nn.GELU,
                  norm_layer=nn.LayerNorm,
                  init='trunc_norm',
-                 spec=None):
+                 spec=None,
+                 block_pattern='3_branches',
+                 local_feature =False):
         super().__init__()
         self.num_classes = num_classes
+        self.local_feature = local_feature
 
         self.num_stages = spec['NUM_STAGES']
         for i in range(self.num_stages):
@@ -522,7 +584,7 @@ class ConvolutionalVisionTransformer(nn.Module):
                 'stride_q': spec['STRIDE_Q'][i],
             }
 
-            stage = VisionTransformer(
+            stage = VisionTransformer_3_branches(
                 in_chans=in_chans,
                 init=init,
                 act_layer=act_layer,
@@ -536,6 +598,7 @@ class ConvolutionalVisionTransformer(nn.Module):
         dim_embed = spec['DIM_EMBED'][-1]
         self.norm = norm_layer(dim_embed)
         self.cls_token = spec['CLS_TOKEN'][-1]
+        self.block_pattern = block_pattern
 
         # Classifier head
         self.head = nn.Linear(dim_embed, num_classes) if num_classes > 0 else nn.Identity()
@@ -602,22 +665,66 @@ class ConvolutionalVisionTransformer(nn.Module):
 
         return layers
 
-    def forward_features(self, x, cam_label, view_label):
-        for i in range(self.num_stages):
-            x, cls_tokens = getattr(self, f'stage{i}')(x)
-
-        if self.cls_token:
-            x = self.norm(cls_tokens)
-            x = torch.squeeze(x)
+    def forward_features(self, x, x2, cam_label=None, view_label=None, domain_norm=False, cls_embed_specific=False,inference_target_only=False):
+        cross_attn_list = []
+        if self.local_feature:
+            for i in range(self.num_stages):
+                x, cls_tokens = getattr(self, f'stage{i}')(x)
         else:
-            x = rearrange(x, 'b c h w -> b (h w) c')
-            x = self.norm(x)
-            x = torch.mean(x, dim=1)
+            if self.block_pattern == '3_branches':
 
-        return x
+                for i in range(self.num_stages):
+                    x, x2, x1_x2_fusion, cls_tokens, cls_tokens2, cls_tokens3, cross_attn_list = getattr(self, f'stage{i}')(x, x2, cross_attn_list, use_cross=False, use_attn=True, domain_norm=False,inference_target_only=False)
 
-    def forward(self, x, cam_label=None, view_label=None):
-        x = self.forward_features(x, cam_label, view_label)
+                if inference_target_only:
+                    x2 = self.norm(x2)
+                    return None, x2, None, None
+                else:
+                    # x = self.norm(x)
+                    # x2 = self.norm(x2)
+                    # x1_x2_fusion = self.norm(x1_x2_fusion)
+                    # return x[:, 0], x2[:, 0], x1_x2_fusion[:, 0], cross_attn_list
+        
+                    if self.cls_token:
+                        x = self.norm(cls_tokens)
+                        x = torch.squeeze(x)
+                        x2 = self.norm(cls_tokens2)
+                        x2 = torch.squeeze(x2)
+                        x1_x2_fusion = self.norm(cls_tokens3)
+                        x1_x2_fusion = torch.squeeze(x1_x2_fusion)
+                    else:
+                        x = rearrange(x, 'b c h w -> b (h w) c')
+                        x = self.norm(x)
+                        x = torch.mean(x, dim=1)
+
+                        x2 = rearrange(x2, 'b c h w -> b (h w) c')
+                        x2 = self.norm(x2)
+                        x2 = torch.mean(x2, dim=1)
+
+                        x1_x2_fusion = rearrange(x1_x2_fusion, 'b c h w -> b (h w) c')
+                        x1_x2_fusion = self.norm(x1_x2_fusion)
+                        x1_x2_fusion = torch.mean(x1_x2_fusion, dim=1)
+            else:
+                for i in range(self.num_stages):
+                    x, x2, cls_tokens, cls_tokens2, cross_attn_list = getattr(self, f'stage{i}')(x, x2, cross_attn_list, use_cross=False, use_attn=True, domain_norm=False,inference_target_only=False)
+                if self.cls_token:
+                    x = self.norm(cls_tokens)
+                    x = torch.squeeze(x)
+                    x2 = self.norm(cls_tokens2)
+                    x2 = torch.squeeze(x2)
+                else:
+                    x = rearrange(x, 'b c h w -> b (h w) c')
+                    x = self.norm(x)
+                    x = torch.mean(x, dim=1)
+
+                    x2 = rearrange(x2, 'b c h w -> b (h w) c')
+                    x2 = self.norm(x2)
+                    x2 = torch.mean(x2, dim=1)
+       
+        return x, x2, x1_x2_fusion, cross_attn_list
+
+    def forward(self, x, x2, cam_label=None, view_label=None, domain_norm=False, cls_embed_specific=False,inference_target_only=False):
+        x = self.forward_features(x, x2, cam_label=None, view_label=None, domain_norm=False, cls_embed_specific=False,inference_target_only=False)
         # x = self.head(x)
 
         return x
@@ -657,7 +764,7 @@ class ConvolutionalVisionTransformer(nn.Module):
 
 #     return model   
 
-def cvt_21_224_TransReID(pretrained = False, index=0, **kwargs):
+def uda_cvt_21_224_TransReID(pretrained = False, index=0, **kwargs):
 
     msvit_spec = {
     "INIT": 'trunc_norm',
@@ -682,7 +789,7 @@ def cvt_21_224_TransReID(pretrained = False, index=0, **kwargs):
     "PADDING_Q": [1, 1, 1],
     "STRIDE_Q": [1, 1, 1]
     }
-    model = ConvolutionalVisionTransformer(
+    model = ConvolutionalVisionTransformer_3_branches(
         in_chans=3,
         num_classes=3,
         act_layer=QuickGELU,
@@ -718,7 +825,7 @@ def resize_pos_embed(posemb, posemb_new, hight, width):
 @register_model
 def get_cls_model(config, **kwargs):
     msvit_spec = config.MODEL.SPEC
-    msvit = ConvolutionalVisionTransformer(
+    msvit = ConvolutionalVisionTransformer_3_branches(
         in_chans=3,
         num_classes=config.MODEL.NUM_CLASSES,
         act_layer=QuickGELU,

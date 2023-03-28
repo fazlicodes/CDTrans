@@ -4,10 +4,10 @@ then
     echo 'pelease input the model para: {deit_base, deit_small, cvt, t2t, cnn, vit}'
     exit 8
 fi
-if [ $model == 'cnn' ]
+if [ $model == 'cvt' ]
 then
-    model_type='resnet101_ibn_a' #'t2t_vit_14'  
-    pretrain_model='resnet101-5d3b4d8f.pth' #'81.7_T2T_ViTt_14.pth' 
+    model_type='cvt_21_224_TransReID' #'t2t_vit_14'  
+    pretrain_model='CvT-21-224x224-IN-1k.pth' #'81.7_T2T_ViTt_14.pth' 
 else
     model='deit_small'
     model_type='vit_small_patch16_224_TransReID'
@@ -15,8 +15,8 @@ else
 fi
 python train.py --config_file configs/pretrain.yml MODEL.DEVICE_ID "('0')" DATASETS.NAMES 'cocoflir' \
 OUTPUT_DIR '../logs/pretrain/'$model'/coco-flir/mscoco' \
-DATASETS.ROOT_TRAIN_DIR '/home/amrin.kareem/Downloads/AI_Project/Old/data/cocoflir/mscoco.txt' \
-DATASETS.ROOT_TEST_DIR '/home/amrin.kareem/Downloads/AI_Project/Old/data/cocoflir/flir.txt'   \
+DATASETS.ROOT_TRAIN_DIR 'data/cocoflir/mscoco.txt' \
+DATASETS.ROOT_TEST_DIR 'data/cocoflir/flir.txt'   \
 MODEL.Transformer_TYPE $model_type \
 MODEL.PRETRAIN_PATH './data/pretrainModel/'$pretrain_model \
 

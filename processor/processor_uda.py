@@ -280,7 +280,7 @@ def do_train_uda(cfg,
     scaler = amp.GradScaler()
     label_memory1 = torch.zeros((img_num1),dtype=torch.long)
     label_memory2 = torch.zeros((img_num2),dtype=torch.long)
-    if '384' in cfg.MODEL.Transformer_TYPE or 'small' in cfg.MODEL.Transformer_TYPE:
+    if '384' in cfg.MODEL.Transformer_TYPE or 'small' in cfg.MODEL.Transformer_TYPE or 'cvt' in cfg.MODEL.Transformer_TYPE:
         feat_memory1 = torch.zeros((img_num1,384),dtype=torch.float32)
         feat_memory2 = torch.zeros((img_num2,384),dtype=torch.float32)
     else:
