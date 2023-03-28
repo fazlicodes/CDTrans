@@ -600,7 +600,7 @@ class PatchEmbed(nn.Module):
         return flops
 
 
-class SwinTransformer(nn.Module):
+class SwinTransformer_uda(nn.Module):
     r""" Swin Transformer
         A PyTorch impl of : `Swin Transformer: Hierarchical Vision Transformer using Shifted Windows`  -
           https://arxiv.org/pdf/2103.14030
@@ -632,7 +632,7 @@ class SwinTransformer(nn.Module):
                  window_size=7, mlp_ratio=4., qkv_bias=True, qk_scale=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
-                 use_checkpoint=False, fused_window_process=False,use_attn=True,use_cross=False,block_pattern='normal', **kwargs):
+                 use_checkpoint=False, fused_window_process=False,use_attn=True,use_cross=False,block_pattern='normal',local_feature=False, **kwargs):
         super().__init__()
         self.use_cross = use_cross
         self.use_attn = use_attn
@@ -685,7 +685,7 @@ class SwinTransformer(nn.Module):
 
         self.norm = norm_layer(self.num_features)
         self.avgpool = nn.AdaptiveAvgPool1d(1)
-        self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
+        self.fc = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
 
 
         self.apply(self._init_weights)
@@ -899,13 +899,13 @@ def resize_pos_embed(posemb, posemb_new, hight, width):
     posemb = torch.cat([posemb_tok, posemb_grid], dim=1)
     return posemb
 
-def uda_swin_base_patch4_window7_224_TransReID(img_size=224, patch_size=4, in_chans=3, num_classes=1000,
+def uda_swin_base_patch4_window7_224_TransReID(img_size=224, patch_size=4, in_chans=3, num_classes=3,
                  embed_dim=128, depths=[2, 2, 18, 2], num_heads=[4, 8, 16, 32],
                  window_size=7, mlp_ratio=4., qkv_bias=True, qk_scale=None,
                  drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
                  use_checkpoint=False, fused_window_process=False, **kwargs):
-    model = SwinTransformer(img_size=img_size,
+    model = SwinTransformer_uda(img_size=img_size,
                                 patch_size=patch_size,
                                 in_chans=in_chans,
                                 num_classes=num_classes,
@@ -926,13 +926,13 @@ def uda_swin_base_patch4_window7_224_TransReID(img_size=224, patch_size=4, in_ch
 
     return model
 
-def uda_swin_small_patch4_window7_224_TransReID(img_size=224, patch_size=4, in_chans=3, num_classes=1000,
+def uda_swin_small_patch4_window7_224_TransReID(img_size=224, patch_size=4, in_chans=3, num_classes=3,
                  embed_dim=96, depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24],
                  window_size=7, mlp_ratio=4., qkv_bias=True, qk_scale=None,
                  drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
-                 use_checkpoint=False, fused_window_process=False,block_pattern='3_branch', **kwargs):
-    model = SwinTransformer(img_size=img_size,
+                 use_checkpoint=False, fused_window_process=False,block_pattern='3_branch',local_feature=False, **kwargs):
+    model = SwinTransformer_uda(img_size=img_size,
                                 patch_size=patch_size,
                                 in_chans=in_chans,
                                 num_classes=num_classes,
@@ -949,6 +949,8 @@ def uda_swin_small_patch4_window7_224_TransReID(img_size=224, patch_size=4, in_c
                                 norm_layer=norm_layer,
                                 patch_norm=patch_norm,
                                 use_checkpoint=use_checkpoint,
-                                fused_window_process=fused_window_process, block_pattern=block_pattern)
+                                fused_window_process=fused_window_process, block_pattern=block_pattern, local_feature=local_feature)
+    
+ 
 
     return model

@@ -284,7 +284,7 @@ class build_transformer(nn.Module):
 
     def load_param_finetune(self, model_path):
         param_dict = torch.load(model_path)
-        print(param_dict.shape)
+        print(len(param_dict))
         for i in param_dict:
             if 'module.' in i: new_i = i.replace('module.','') 
             else: new_i = i 
@@ -321,10 +321,9 @@ class build_uda_transformer(nn.Module):
             if 'swin' in cfg.MODEL.Transformer_TYPE:
                 self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, 
                                                                 patch_size=cfg.MODEL.SWIN.PATCH_SIZE, 
-                                                                depths=cfg.MODEL.SWIN.DEPTHS, 
                                                                 stride_size=cfg.MODEL.STRIDE_SIZE, 
                                                                 drop_path_rate=cfg.MODEL.DROP_PATH, 
-                                                                num_heads=cfg.MODEL.SWIN.NUM_HEADS, 
+                                                                local_feature=cfg.MODEL.LOCAL_F, 
                                                                 block_pattern=cfg.MODEL.BLOCK_PATTERN)
             else:
                 self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, 
@@ -441,14 +440,22 @@ class build_uda_transformer(nn.Module):
 
     def load_param_finetune(self, model_path):
         param_dict = torch.load(model_path)
+        count = 0 
         for i in param_dict:  
             if 'module.' in i: new_i = i.replace('module.','') 
-            else: new_i = i 
+            else: new_i = i
+            # print('model parameter: {} not match'.format(new_i))
+
             if new_i not in self.state_dict().keys():
+                count+=1
                 print('model parameter: {} not match'.format(new_i))
                 continue
-            print(self.state_dict()[new_i].shape)
+            # if self.state_dict()[new_i].shape != param_dict[i].shape:
+            #     print('model:{}\npretrained:{}'.format(self.state_dict()[new_i].shape, param_dict[i].shape))
             self.state_dict()[new_i].copy_(param_dict[i])
+        print(count)
+        # print(self.base)
+        # print(param_dict.keys())
         print('Loading pretrained model for finetuning from {}'.format(model_path))
 
 
