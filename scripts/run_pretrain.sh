@@ -20,6 +20,7 @@ then
     model='swin_base'
     model_type='swin_base_patch4_window7_224_TransReID'
     pretrain_model='swin_base_patch4_window7_224_22k.pth'
+    gpus="('0,1')"
 else
     model='deit_small'
     model_type='vit_small_patch16_224_TransReID'
