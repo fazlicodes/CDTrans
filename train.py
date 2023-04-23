@@ -2,8 +2,8 @@ import os
 from torch.backends import cudnn
 from utils.logger import setup_logger
 from datasets import make_dataloader
-from model import make_model
-from solver import make_optimizer, create_scheduler
+from model.make_model import *
+from solver import make_optimizer, create_scheduler, make_optimizer_d
 from loss import make_loss
 from processor import do_train_pretrain, do_train_uda
 import random
@@ -92,6 +92,8 @@ if __name__ == '__main__':
     model = make_model(cfg, num_class=num_classes, camera_num=camera_num, view_num = view_num)
     loss_func, center_criterion = make_loss(cfg, num_classes=num_classes)
     optimizer, optimizer_center = make_optimizer(cfg, model, center_criterion)
+    discriminator = Discriminator()
+    optimizer_d = make_optimizer_d(cfg, discriminator)
     scheduler = create_scheduler(cfg, optimizer)
     
     if cfg.MODEL.UDA_STAGE == 'UDA':
@@ -107,6 +109,7 @@ if __name__ == '__main__':
         val_loader,
         s_dataset, t_dataset,
         optimizer,
+        optimizer_d,
         optimizer_center,
         scheduler,  
         loss_func,

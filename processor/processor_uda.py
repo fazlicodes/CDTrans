@@ -240,6 +240,7 @@ def do_train_uda(cfg,
              val_loader,
              s_dataset, t_dataset,
              optimizer,
+             optimizer_d,
              optimizer_center,
              scheduler,
              loss_fn,
@@ -322,30 +323,56 @@ def do_train_uda(cfg,
             t_pseudo_target = vid[1].to(device)
             s_idx,t_idx = idx
             label_knn = label_memory2[t_idx].cuda()
-
             optimizer.zero_grad()
             optimizer_center.zero_grad()
-  
+            p_one = torch.ones_like(imgs).to(device)
+            p_zero = torch.zeros_like(imgs).to(device)
             target_cam = target_cam.to(device)
             target_view = target_view.to(device)
+
+            #train classifier
             with amp.autocast(enabled=True):
                 def distill_loss(teacher_output, student_out):
                     teacher_out = F.softmax(teacher_output, dim=-1)    
                     loss = torch.sum( -teacher_out * F.log_softmax(student_out, dim=-1), dim=-1)
                     return loss.mean()
                     
-                (self_score1, self_feat1, _), (score2, feat2, _), (score_fusion, _, _), aux_data  = model(img, t_img, target, cam_label=target_cam, view_label=target_view ) # output: source , target , source_target_fusion
+                (self_score1, self_feat1, _), (score2, feat2, _), (score_fusion, _, _), aux_data, p_source, p_target  = model(img, t_img, target, cam_label=target_cam, view_label=target_view ) # output: source , target , source_target_fusion
                 
                 loss1 = loss_fn(self_score1, self_feat1, target, target_cam)
                 loss2 = loss_fn(score2, feat2, t_pseudo_target, target_cam)
                 loss3 = distill_loss(score_fusion, score2)
-                loss = loss2 + loss3 + loss1
+                loss_source = nn.BCELoss()(p_source, p_one)
+                loss_target = nn.BCELoss()(p_target, p_zero)
+                loss = loss2 + loss3 + loss1 + loss_source + loss_target
 
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
             scaler.step(optimizer)
+            scaler.update()
+
+            #train discriminator
+            with amp.autocast(enabled=True):
+                def distill_loss(teacher_output, student_out):
+                    teacher_out = F.softmax(teacher_output, dim=-1)    
+                    loss = torch.sum( -teacher_out * F.log_softmax(student_out, dim=-1), dim=-1)
+                    return loss.mean()
+                    
+                (self_score1, self_feat1, _), (score2, feat2, _), (score_fusion, _, _), aux_data, p_source, p_target  = model(img, t_img, target, cam_label=target_cam, view_label=target_view ) # output: source , target , source_target_fusion
+                
+                loss1 = loss_fn(self_score1, self_feat1, target, target_cam)
+                loss2 = loss_fn(score2, feat2, t_pseudo_target, target_cam)
+                loss3 = distill_loss(score_fusion, score2)
+                loss_target = nn.BCELoss()(p_target, p_one)
+                loss_d = loss2 + loss3 + loss1 + loss_target
+
+            scaler.scale(loss_d).backward()
+            scaler.unscale_(optimizer_d)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+
+            scaler.step(optimizer_d)
             scaler.update()
 
             if 'center' in cfg.MODEL.METRIC_LOSS_TYPE:

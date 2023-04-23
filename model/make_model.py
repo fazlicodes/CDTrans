@@ -70,7 +70,7 @@ class Backbone(nn.Module):
             self.base = se_resnet101_ibn_a(last_stride,frozen_stages=cfg.MODEL.FROZEN)
             print('using se_resnet101_ibn_a as a backbone')
         else:
-            print('unsupported backbone! but got {}'.format(model_name))
+            print('unsupported backbone! but modelgot {}'.format(model_name))
 
         
         if pretrain_choice == 'imagenet':
@@ -176,13 +176,19 @@ class build_transformer(nn.Module):
         if '384' in cfg.MODEL.Transformer_TYPE or 'small' in cfg.MODEL.Transformer_TYPE:
             self.in_planes = 384 
         else:
-            self.in_planes = 3
+            self.in_planes = 384
         self.bottleneck_dim = 256
         print('using Transformer_type: {} as a backbone'.format(cfg.MODEL.Transformer_TYPE))
         if cfg.MODEL.TASK_TYPE == 'classify_DA':
-            self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
-        else:
-            self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_TRAIN, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
+            if cfg.MODEL.Transformer_TYPE == 't2t_vit_14': # from FAZLI
+                self.base = factory[cfg.MODEL.Transformer_TYPE](stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
+            else:
+                self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_TRAIN, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
+
+
+        #     self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
+        # else:
+        #     self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_TRAIN, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
 
         self.gap = nn.AdaptiveAvgPool2d(1)
 
@@ -226,7 +232,8 @@ class build_transformer(nn.Module):
             print('Loading pretrained model......from {}'.format(model_path))
 
     def forward(self, x, label=None, cam_label= None, view_label=None, return_logits=False):  # label is unused if self.cos_layer == 'no'
-        global_feat = self.base(x, cam_label=cam_label, view_label=view_label)
+        global_feat = self.base(x) #from FAZLI
+        # global_feat = self.base(x, cam_label=cam_label, view_label=view_label)
         feat = self.bottleneck(global_feat)
         if return_logits:
             if self.cos_layer:
@@ -269,6 +276,23 @@ class build_transformer(nn.Module):
             self.state_dict()[new_i].copy_(param_dict[i])
         print('Loading pretrained model for finetuning from {}'.format(model_path))
 
+class Discriminator(nn.Module):
+    def __init__(self, h=500, args=None):
+        super(Discriminator, self).__init__()
+        self.l1 = nn.Linear(2048, h)
+        self.l2 = nn.Linear(h, h)
+        self.l3 = nn.Linear(h, 2)
+        self.l4 = nn.LogSoftmax(dim=1)
+        self.slope = args.slope
+
+    def forward(self, x):
+        x = F.leaky_relu(self.l1(x), self.slope)
+        x = F.leaky_relu(self.l2(x), self.slope)
+        x = self.l3(x)
+        x = self.l4(x)
+        return x
+    
+
 class build_uda_transformer(nn.Module):
     def __init__(self, num_classes, camera_num, view_num, cfg, factory):
         super(build_uda_transformer, self).__init__()
@@ -279,7 +303,7 @@ class build_uda_transformer(nn.Module):
         self.neck = cfg.MODEL.NECK
         self.neck_feat = cfg.TEST.NECK_FEAT
         self.task_type = cfg.MODEL.TASK_TYPE
-        self.in_planes = 384 if 'small' in cfg.MODEL.Transformer_TYPE else 768
+        self.in_planes = 384 if 'small' in cfg.MODEL.Transformer_TYPE else 3
         print('using Transformer_type: {} as a backbone'.format(cfg.MODEL.Transformer_TYPE))
         if cfg.MODEL.TASK_TYPE == 'classify_DA':
             self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH, block_pattern=cfg.MODEL.BLOCK_PATTERN)
@@ -288,6 +312,7 @@ class build_uda_transformer(nn.Module):
 
         self.gap = nn.AdaptiveAvgPool2d(1)
         self.num_classes = num_classes
+        self.discriminator = Discriminator()
         self.ID_LOSS_TYPE = cfg.MODEL.ID_LOSS_TYPE
         if self.ID_LOSS_TYPE == 'arcface':
             print('using {} with s:{}, m: {}'.format(self.ID_LOSS_TYPE,cfg.SOLVER.COSINE_SCALE,cfg.SOLVER.COSINE_MARGIN))
@@ -329,6 +354,10 @@ class build_uda_transformer(nn.Module):
     def forward(self, x, x2, label=None, cam_label= None, view_label=None, domain_norm=False, return_logits=False, return_feat_prob=False, cls_embed_specific=False):  # label is unused if self.cos_layer == 'no'
         inference_flag = not self.training
         global_feat, global_feat2, global_feat3, cross_attn = self.base(x, x2, cam_label=cam_label, view_label=view_label, domain_norm=domain_norm, cls_embed_specific=cls_embed_specific, inference_target_only=inference_flag)
+
+        p_source = self.discriminator(x)
+        p_target = self.discriminator(x2)
+
         if self.neck == '':
             feat = global_feat
             feat2 = global_feat2
@@ -343,11 +372,13 @@ class build_uda_transformer(nn.Module):
                 cls_score = self.classifier(feat, label)
                 cls_score2 = self.classifier(feat2, label)
                 cls_score3 = self.classifier(feat3, label) if global_feat3 is not None else None
+                
             else:
                 cls_score = self.classifier(feat)   if global_feat is not None else None
                 cls_score2 = self.classifier(feat2)
                 cls_score3 = self.classifier(feat3) if global_feat3 is not None else None
-
+                print("score ", cls_score, cls_score2, cls_score3)
+                
             return cls_score, cls_score2, cls_score3
 
         if self.training or return_feat_prob:
@@ -360,7 +391,8 @@ class build_uda_transformer(nn.Module):
                 cls_score2 = self.classifier(feat2)
                 cls_score3 = self.classifier(feat3) if self.training else None
 
-            return (cls_score, global_feat, feat), (cls_score2, global_feat2, feat2), (cls_score3, global_feat3, feat3), cross_attn   # source , target , source_target_fusion
+            return (cls_score, global_feat, feat), (cls_score2, global_feat2, feat2), (cls_score3, global_feat3, feat3), cross_attn, p_source, p_target  # source , target , source_target_fusion
+        
             
         else:
             if self.neck_feat == 'after' and self.neck != '':
