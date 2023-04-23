@@ -202,7 +202,7 @@ _C.TEST.RE_RANKING = False
 _C.TEST.RE_RANKING_TRACK = False
 
 # Path to trained model
-_C.TEST.WEIGHT = ""
+_C.TEST.WEIGHT = "/home/mohamed.imam/Downloads/Projects/logs/pretrain/cvt/coco-flir/mscoco/transformer_best_model.pth"
 # Which feature of BNNeck to be used for test, before or after BNNneck, options: 'before' or 'after'
 _C.TEST.NECK_FEAT = 'after'
 # Whether feature is nomalized before test, if yes, it is equivalent to cosine distance

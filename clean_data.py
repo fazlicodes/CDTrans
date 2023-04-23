@@ -10,6 +10,7 @@ from model import make_model
 # from .model.backbones.cvt import cvt_21_224_TransReID
 from config import cfg
 import argparse
+from utils import clean_data_util
 
 file_path="/home/mohamed.imam/Downloads/Projects/CDTrans/data/cocoflir/flir/transformer_best_model.pth"
 
@@ -79,18 +80,22 @@ for i in range(len(sub_dir)):
     folder_name = 'bad_images_'+sub_dir[i]
     root_dir = data_root + sub_dir[i]
     conf_file_name = './conf_scores_' + sub_dir[i] + '.txt'
+    print (folder_name)
+    
 
     if not os.path.exists(folder_name):
         os.mkdir(folder_name)
+        print ('success')
+
+    clean_data_util.create_subdirectories(folder_name)
 
     # Create the custom dataset
     dataset = CustomDataset(root_dir=root_dir, transform=transform)
 
     # Create the dataloader for the custom dataset
-    dataloader = DataLoader(dataset, batch_size=512, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=256, shuffle=False)
     output_file = open(conf_file_name, 'a')
-    # Put the model in evaluation mode
-   
+
     x=0
 
     # Disable gradient computation (not needed for inference, reduces memory consumption)
@@ -101,18 +106,32 @@ for i in range(len(sub_dir)):
             images = images.to(device)
             # Pass the images to the model for inference
             outputs = model(images)
+            
             # Compute the softmax probabilities (confidence scores) of the predictions
             probs = torch.nn.functional.softmax(outputs, dim=1)
             
             # print (probs)
             # Print the confidence scores of the predictions along with the image name
             for j, sample_probs in enumerate(probs):
+
+                    
+
                 image_name = image_names[j]
                 x=x+1
+                status = 'correct'
                 print (x,root_dir)
-                if torch.argmax(sample_probs) != i:
+                pred_class = torch.argmax(sample_probs)
+                conf_score = torch.max(sample_probs)
+
+                if pred_class != i:
+                    pred_class = str(torch.argmax(sample_probs).item())
+                    status = 'misclassify ' + str(pred_class)
                     # Copy the image to the "bad_images" directory if the index of the maximum value of sample_probs tensor is not 1
-                    shutil.copy(os.path.join(root_dir, image_name), os.path.join(folder_name, image_name))
+                    # shutil.copy(os.path.join(root_dir, image_name), os.path.join(folder_name, image_name))
+                    
+                    clean_data_util.copy_image_to_subdir(image_name, conf_score, folder_name,root_dir,pred_class)
                 # print(f"Image: {image_name} - Confidence scores: {sample_probs}")
                 # print (sample_probs.shape)
-                output_file.write(f"Image: {image_name} - Confidence scores: {sample_probs}\n")
+                # print (status)
+                
+                output_file.write(f"Image: {image_name} - Confidence scores: {sample_probs} - {status} - {torch.argmax(sample_probs)} \n")

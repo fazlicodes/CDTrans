@@ -7,7 +7,6 @@ from .backbones.se_resnet_ibn_a import se_resnet101_ibn_a
 from .backbones.vit_pytorch import vit_base_patch16_224_TransReID, vit_small_patch16_224_TransReID
 from .backbones.cvt import cvt_21_224_TransReID
 from .backbones.cvt_uda import uda_cvt_21_224_TransReID
-from .backbones.t2t_vit import t2t_vit_14
 from .backbones.vit_pytorch_uda import uda_vit_base_patch16_224_TransReID, uda_vit_small_patch16_224_TransReID
 import torch.nn.functional as F
 from loss.metric_learning import Arcface, Cosface, AMSoftmax, CircleLoss
@@ -182,10 +181,9 @@ class build_transformer(nn.Module):
         self.bottleneck_dim = 256
         print('using Transformer_type: {} as a backbone'.format(cfg.MODEL.Transformer_TYPE))
         if cfg.MODEL.TASK_TYPE == 'classify_DA':
-            if cfg.MODEL.Transformer_TYPE == 't2t_vit_14':
-                self.base = factory[cfg.MODEL.Transformer_TYPE](stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
-            else:
-                self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_TRAIN, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
+            self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
+        else:
+            self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_TRAIN, aie_xishu=cfg.MODEL.AIE_COE,local_feature=cfg.MODEL.LOCAL_F, stride_size=cfg.MODEL.STRIDE_SIZE, drop_path_rate=cfg.MODEL.DROP_PATH)
 
         self.gap = nn.AdaptiveAvgPool2d(1)
 
@@ -219,7 +217,6 @@ class build_transformer(nn.Module):
 
     def _load_parameter(self, pretrain_choice, model_path):
         if pretrain_choice == 'imagenet':
-            # print(model_path)
             self.base.load_param(model_path)
             print('Loading pretrained ImageNet model......from {}'.format(model_path))
         elif pretrain_choice == 'un_pretrain':
@@ -229,8 +226,8 @@ class build_transformer(nn.Module):
             self.load_param_finetune(model_path)
             print('Loading pretrained model......from {}'.format(model_path))
 
-    def forward(self, x, label=None, cam_label= None, view_label=None, return_logits=False):  # label is unused if self.cos_layer == 'no'
-        global_feat = self.base(x)
+    def forward(self, x, label=None, cam_label= None, view_label=None, return_logits=True):  # label is unused if self.cos_layer == 'no'
+        global_feat = self.base(x, cam_label=cam_label, view_label=view_label)
         feat = self.bottleneck(global_feat)
         if return_logits:
             if self.cos_layer:
@@ -341,7 +338,6 @@ class build_uda_transformer(nn.Module):
             feat = self.bottleneck(global_feat) if self.training else None
             feat3 = self.bottleneck(global_feat3) if self.training else None
             feat2 = self.bottleneck(global_feat2)
-
         if return_logits:
             if self.ID_LOSS_TYPE in ('arcface', 'cosface', 'amsoftmax', 'circle'):
                 cls_score = self.classifier(feat, label)
@@ -403,10 +399,10 @@ __factory_hh = {
     'vit_small_patch16_224_TransReID': vit_small_patch16_224_TransReID, 
     'cvt_21_224_TransReID': cvt_21_224_TransReID,
     'uda_cvt_21_224_TransReID': uda_cvt_21_224_TransReID,
-    't2t_vit_14': t2t_vit_14,
     'uda_vit_small_patch16_224_TransReID': uda_vit_small_patch16_224_TransReID, 
     'uda_vit_base_patch16_224_TransReID': uda_vit_base_patch16_224_TransReID,
-    'resnet101_ibn_a': resnet101_ibn_a
+
+    # 'resnet101': resnet101,
 }
 
 def make_model(cfg, num_class, camera_num, view_num):

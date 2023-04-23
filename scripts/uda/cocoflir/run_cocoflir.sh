@@ -33,7 +33,7 @@ else
 fi
 
 python train.py --config_file configs/uda.yml MODEL.DEVICE_ID $gpus \
-OUTPUT_DIR '../logs/uda/'$model'/coco-flir/mscoco' \
+OUTPUT_DIR '../logs/uda2/'$model'/coco-flir/mscoco' \
 DATASETS.ROOT_TRAIN_DIR '/home/mohamed.imam/Downloads/Projects/CDTrans/data/cocoflir/mscoco.txt' \
 DATASETS.ROOT_TRAIN_DIR2 '/home/mohamed.imam/Downloads/Projects/CDTrans/data/cocoflir/flir.txt' \
 DATASETS.ROOT_TEST_DIR '/home/mohamed.imam/Downloads/Projects/CDTrans/data/cocoflir/flir.txt' \

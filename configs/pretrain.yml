@@ -25,7 +25,7 @@ INPUT:
 
 DATASETS:
   NAMES: ('cocoflir')
-  ROOT_TRAIN_DIR: ('/home/amrin.kareem/Downloads/AI_Project/Old/data/')
+  ROOT_TRAIN_DIR: ('/home/mohamed.imam/Downloads/Projects/CDTrans/data/')
   NAMES2: ('OURAPI')
   ROOT_TRAIN_DIR2: ('./datasets/reid_datasets/Refined_DukeMTMC_reID')
   ROOT_TEST_DIR: ('./datasets/reid_datasets/Refined_DukeMTMC_reID')
@@ -59,7 +59,7 @@ TEST:
   RE_RANKING: False
   RE_RANKING_TRACK: False
 
-  WEIGHT: '../logs/trans4DA/CVT/transformer_120.pth'
+  WEIGHT: '/home/mohamed.imam/Downloads/Projects/logs/pretrain/cvt/coco-flir/mscoco/transformer_best_model.pth'
   NECK_FEAT: 'after'
   FEAT_NORM: 'yes'
 

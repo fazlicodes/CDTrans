@@ -221,7 +221,7 @@ def do_inference(cfg,
     model.eval()
     img_path_list = []
     for n_iter, (img, pid, camid, camids, target_view, imgpath) in enumerate(val_loader):
-        with torch.no_grad():
+        with torch.no_grad():    
             img = img.to(device)
             camids = camids.to(device)
             target_view = target_view.to(device)
