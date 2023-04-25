@@ -182,9 +182,17 @@ class WindowAttention_3_branches(nn.Module):
 
             if mask is not None:
                 nW = mask.shape[0]
+                attn = attn.view(B_ // nW, nW, self.num_heads, N, N) + mask.unsqueeze(1).unsqueeze(0)
+                attn = attn.view(-1, self.num_heads, N, N)
+                attn = self.softmax(attn)
+
                 attn2 = attn2.view(B_ // nW, nW, self.num_heads, N, N) + mask.unsqueeze(1).unsqueeze(0)
                 attn2 = attn2.view(-1, self.num_heads, N, N)
                 attn2 = self.softmax(attn2)
+
+                attn3 = attn3.view(B_ // nW, nW, self.num_heads, N, N) + mask.unsqueeze(1).unsqueeze(0)
+                attn3 = attn3.view(-1, self.num_heads, N, N)
+                attn3 = self.softmax(attn3)
             else:
                 attn = self.softmax(attn)
                 attn2 = self.softmax(attn2)
@@ -194,7 +202,7 @@ class WindowAttention_3_branches(nn.Module):
             attn2 = self.attn_drop(attn2)
             attn3 = self.attn_drop(attn3)
 
-            x = (attn2 @ v).transpose(1, 2).reshape(B_, N, C)
+            x = (attn @ v).transpose(1, 2).reshape(B_, N, C)
             x = self.proj(x)
             x = self.proj_drop(x)
 
@@ -300,54 +308,39 @@ class SwinTransformerBlock_3_branches(nn.Module):
 
     def forward(self, x, x2, x1_x2_fusion, use_cross=False, use_attn=True, domain_norm=False,inference_target_only=False):
         H, W = self.input_resolution
-        B, L, C = x.shape
+        B, L, C = x2.shape
         assert L == H * W, "input feature has wrong size"
 
-        shortcut = x
-        shortcut2 = x2
-        shortcut3 = x1_x2_fusion
-
-        x = self.norm1(x)
-        x = x.view(B, H, W, C)
-        x2 = self.norm1(x2)
-        x2 = x2.view(B, H, W, C)
-        x1_x2_fusion = self.norm1(x1_x2_fusion)
-        x1_x2_fusion = x1_x2_fusion.view(B, H, W, C)
-
-        # cyclic shift
-        if self.shift_size > 0:
-            if not self.fused_window_process:
-                shifted_x = torch.roll(x, shifts=(-self.shift_size, -self.shift_size), dims=(1, 2))
-                shifted_x2 = torch.roll(x2, shifts=(-self.shift_size, -self.shift_size), dims=(1, 2))
-                shifted_x1_x2_fusion = torch.roll(x1_x2_fusion, shifts=(-self.shift_size, -self.shift_size), dims=(1, 2))
-                # partition windows
-                x_windows = window_partition(shifted_x, self.window_size)  # nW*B, window_size, window_size, C
-                x2_windows = window_partition(shifted_x2, self.window_size)  # nW*B, window_size, window_size, C
-                x1_x2_fusion_windows = window_partition(shifted_x1_x2_fusion, self.window_size)  # nW*B, window_size, window_size, C
-            else:
-                x_windows = WindowProcess.apply(x, B, H, W, C, -self.shift_size, self.window_size)
-                x2_windows = WindowProcess.apply(x, B, H, W, C, -self.shift_size, self.window_size)
-                x1_x2_fusion_windows = WindowProcess.apply(x, B, H, W, C, -self.shift_size, self.window_size)
-        else:
-            shifted_x = x
-            shifted_x2 = x2
-            shifted_x1_x2_fusion = x1_x2_fusion
-            # partition windows
-            x_windows = window_partition(shifted_x, self.window_size)  # nW*B, window_size, window_size, C
-            x2_windows = window_partition(shifted_x, self.window_size)  # nW*B, window_size, window_size, C
-            x1_x2_fusion_windows = window_partition(shifted_x, self.window_size)  # nW*B, window_size, window_size, C
-
-        x_windows = x_windows.view(-1, self.window_size * self.window_size, C)  # nW*B, window_size*window_size, C
-        x2_windows = x2_windows.view(-1, self.window_size * self.window_size, C)  # nW*B, window_size*window_size, C
-        x1_x2_fusion_windows = x1_x2_fusion_windows.view(-1, self.window_size * self.window_size, C)  # nW*B, window_size*window_size, C
-
-        # W-MSA/SW-MSA
-        # attn_windows = self.attn(x_windows, mask=self.attn_mask)  # nW*B, window_size*window_size, C
-        
-
         if inference_target_only:
-            _, xa_attn2, _, _ = self.attn(None,self.norm1(x2), inference_target_only=inference_target_only)
+           
+            shortcut2 = x2
+           
+            x2 = self.norm1(x2)
+            x2 = x2.view(B, H, W, C)
+
+           
+            # cyclic shift
+            if self.shift_size > 0:
+                if not self.fused_window_process:
+                    shifted_x2 = torch.roll(x2, shifts=(-self.shift_size, -self.shift_size), dims=(1, 2))
+                    # partition windows
+                    x2_windows = window_partition(shifted_x2, self.window_size)  # nW*B, window_size, window_size, C
+                else:
+                    x2_windows = WindowProcess.apply(x2, B, H, W, C, -self.shift_size, self.window_size)
+            else:
+                shifted_x2 = x2
+                # partition windows
+                x2_windows = window_partition(shifted_x2, self.window_size)  # nW*B, window_size, window_size, C
+
+            x2_windows = x2_windows.view(-1, self.window_size * self.window_size, C)  # nW*B, window_size*window_size, C
+
+            # W-MSA/SW-MSA
+            # attn_windows = self.attn(x_windows, mask=self.attn_mask)  # nW*B, window_size*window_size, C
+            _, xa_attn2, _, _ = self.attn(None, x2_windows, inference_target_only=inference_target_only, mask=self.attn_mask)
+
+            # merge windows
             xa_attn2 = xa_attn2.view(-1, self.window_size, self.window_size, C)
+
              # reverse cyclic shift
             if self.shift_size > 0:
                 if not self.fused_window_process:
@@ -364,8 +357,52 @@ class SwinTransformerBlock_3_branches(nn.Module):
             # FFN
             xb = xb + self.drop_path(self.mlp(self.norm2(xb)))
             xa, xab, cross_attn = None, None, None
+
         else:
-            xa_attn, xa_attn2, xa_attn3, cross_attn = self.attn(x_windows, x2_windows, inference_target_only=inference_target_only)
+            shortcut = x
+            shortcut2 = x2
+            shortcut3 = x1_x2_fusion
+
+            x = self.norm1(x)
+            x = x.view(B, H, W, C)
+
+            x2 = self.norm1(x2)
+            x2 = x2.view(B, H, W, C)
+
+            x1_x2_fusion = self.norm1(x1_x2_fusion)
+            x1_x2_fusion = x1_x2_fusion.view(B, H, W, C)
+
+            # cyclic shift
+            if self.shift_size > 0:
+                if not self.fused_window_process:
+                    shifted_x = torch.roll(x, shifts=(-self.shift_size, -self.shift_size), dims=(1, 2))
+                    shifted_x2 = torch.roll(x2, shifts=(-self.shift_size, -self.shift_size), dims=(1, 2))
+                    shifted_x1_x2_fusion = torch.roll(x1_x2_fusion, shifts=(-self.shift_size, -self.shift_size), dims=(1, 2))
+                    # partition windows
+                    x_windows = window_partition(shifted_x, self.window_size)  # nW*B, window_size, window_size, C
+                    x2_windows = window_partition(shifted_x2, self.window_size)  # nW*B, window_size, window_size, C
+                    x1_x2_fusion_windows = window_partition(shifted_x1_x2_fusion, self.window_size)  # nW*B, window_size, window_size, C
+                else:
+                    x_windows = WindowProcess.apply(x, B, H, W, C, -self.shift_size, self.window_size)
+                    x2_windows = WindowProcess.apply(x2, B, H, W, C, -self.shift_size, self.window_size)
+                    x1_x2_fusion_windows = WindowProcess.apply(x1_x2_fusion, B, H, W, C, -self.shift_size, self.window_size)
+            else:
+                shifted_x = x
+                shifted_x2 = x2
+                shifted_x1_x2_fusion = x1_x2_fusion
+                # partition windows
+                x_windows = window_partition(shifted_x, self.window_size)  # nW*B, window_size, window_size, C
+                x2_windows = window_partition(shifted_x2, self.window_size)  # nW*B, window_size, window_size, C
+                x1_x2_fusion_windows = window_partition(shifted_x1_x2_fusion, self.window_size)  # nW*B, window_size, window_size, C
+
+            x_windows = x_windows.view(-1, self.window_size * self.window_size, C)  # nW*B, window_size*window_size, C
+            x2_windows = x2_windows.view(-1, self.window_size * self.window_size, C)  # nW*B, window_size*window_size, C
+            x1_x2_fusion_windows = x1_x2_fusion_windows.view(-1, self.window_size * self.window_size, C)  # nW*B, window_size*window_size, C
+
+            # W-MSA/SW-MSA
+            # attn_windows = self.attn(x_windows, mask=self.attn_mask)  # nW*B, window_size*window_size, C
+        
+            xa_attn, xa_attn2, xa_attn3, cross_attn = self.attn(x_windows, x2_windows, inference_target_only=inference_target_only, mask=self.attn_mask)
             # merge windows
             xa_attn = xa_attn.view(-1, self.window_size, self.window_size, C)
             xa_attn2 = xa_attn2.view(-1, self.window_size, self.window_size, C)
@@ -397,8 +434,10 @@ class SwinTransformerBlock_3_branches(nn.Module):
 
             xa = xa.view(B, H * W, C)
             xa = shortcut + self.drop_path(xa)
+
             xb = xb.view(B, H * W, C)
             xb = shortcut2 + self.drop_path(xb)
+
             xab = xab.view(B, H * W, C)
             xab = shortcut3 + self.drop_path(xab)
 
@@ -529,15 +568,27 @@ class BasicLayer(nn.Module):
             self.downsample = None
 
     def forward(self, x, x2, x1_x2_fusion, use_cross=False, use_attn=True, domain_norm=False,inference_target_only=False):
-        for blk in self.blocks:
-            if self.use_checkpoint:
-                xa, xb, xab, cross_attn = checkpoint.checkpoint(blk, x, x2, x1_x2_fusion, use_cross=False, use_attn=True, domain_norm=False,inference_target_only=False)
-            else:
-                xa, xb, xab, cross_attn = blk(x,x2, x1_x2_fusion, use_cross=False, use_attn=True, domain_norm=False,inference_target_only=False)
-        if self.downsample is not None:
-            xa = self.downsample(x)
-            xab = self.downsample(x1_x2_fusion)
-            xb = self.downsample(x2)
+        if inference_target_only:
+
+            for blk in self.blocks:
+                if self.use_checkpoint:
+                    _, xb, _, _ = checkpoint.checkpoint(blk, x, x2, x1_x2_fusion, use_cross=False, use_attn=True, domain_norm=False,inference_target_only=inference_target_only)
+                else:
+                    _, xb, _, _ = blk(x,x2, x1_x2_fusion, use_cross=False, use_attn=True, domain_norm=False,inference_target_only=inference_target_only)
+            if self.downsample is not None:
+                xb = self.downsample(x2)
+            xa, xab, cross_attn = None, None, None 
+        else:
+            for blk in self.blocks:
+                if self.use_checkpoint:
+                    xa, xb, xab, cross_attn = checkpoint.checkpoint(blk, x, x2, x1_x2_fusion, use_cross=False, use_attn=True, domain_norm=False,inference_target_only=inference_target_only)
+                else:
+                    xa, xb, xab, cross_attn = blk(x,x2, x1_x2_fusion, use_cross=False, use_attn=True, domain_norm=False,inference_target_only=inference_target_only)
+            if self.downsample is not None:
+                xa = self.downsample(x)
+                xab = self.downsample(x1_x2_fusion)
+                xb = self.downsample(x2)
+
         return xa, xb, xab, cross_attn
 
     def extra_repr(self) -> str:
@@ -726,14 +777,25 @@ class SwinTransformer_uda(nn.Module):
                 cross_attn_list.append(cross_attn)
 
             if inference_target_only:
-                    x2 = self.norm(x2)
-                    return None, x2[:, 0], None, None
+                    x2 = self.norm(x2)  # B L C
+                    x2 = self.avgpool(x2.transpose(1, 2))  # B C 1
+                    x2 = torch.flatten(x2, 1)
+                    return None, x2, None, None
             else:
-                x = self.norm(x)
-                x2 = self.norm(x2)
-                x1_x2_fusion = self.norm(x1_x2_fusion)
 
-                return x[:, 0], x2[:, 0], x1_x2_fusion[:, 0], cross_attn_list 
+                x1 = self.norm(x1)  # B L C
+                x1 = self.avgpool(x1.transpose(1, 2))  # B C 1
+                x1 = torch.flatten(x1, 1)
+
+                x2 = self.norm(x2)  # B L C
+                x2 = self.avgpool(x2.transpose(1, 2))  # B C 1
+                x2 = torch.flatten(x2, 1)
+
+                x1_x2_fusion = self.norm(x1_x2_fusion)  # B L C
+                x1_x2_fusion = self.avgpool(x1_x2_fusion.transpose(1, 2))  # B C 1
+                x1_x2_fusion = torch.flatten(x1_x2_fusion, 1)
+                
+                return x, x2, x1_x2_fusion, cross_attn_list 
         else:
             for i, blk in enumerate(self.layers):
                 x,x2 = blk(x,x2,use_cross=self.use_cross,use_attn=self.use_attn, domain_norm=domain_norm)

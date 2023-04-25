@@ -687,22 +687,22 @@ class SwinTransformer(nn.Module):
         Nc2 = model.head.bias.shape[0]
         print(Nc2)
         if (Nc1 != Nc2):
-            # if Nc1 == 21841 and Nc2 == 1000:
-            #     # logger.info("loading ImageNet-22K weight to ImageNet-1K ......")
-            #     print("loading ImageNet-22K weight to ImageNet-1K ......")
-            #     map22kto1k_path = f'data/map22kto1k.txt'
-            #     with open(map22kto1k_path) as f:
-            #         map22kto1k = f.readlines()
-            #     map22kto1k = [int(id22k.strip()) for id22k in map22kto1k]
-            #     state_dict['head.weight'] = state_dict['head.weight'][map22kto1k, :]
-            #     state_dict['head.bias'] = state_dict['head.bias'][map22kto1k]
-            # else:
-            torch.nn.init.constant_(model.head.bias, 0.)
-            torch.nn.init.constant_(model.head.weight, 0.)
-            del state_dict['head.weight']
-            del state_dict['head.bias']
-            # logger.warning(f"Error in loading classifier head, re-init classifier head to 0")
-            print(f"Error in loading classifier head, re-init classifier head to 0")
+            if Nc1 == 21841 and Nc2 == 1000:
+                # logger.info("loading ImageNet-22K weight to ImageNet-1K ......")
+                print("loading ImageNet-22K weight to ImageNet-1K ......")
+                map22kto1k_path = f'data/map22kto1k.txt'
+                with open(map22kto1k_path) as f:
+                    map22kto1k = f.readlines()
+                map22kto1k = [int(id22k.strip()) for id22k in map22kto1k]
+                state_dict['head.weight'] = state_dict['head.weight'][map22kto1k, :]
+                state_dict['head.bias'] = state_dict['head.bias'][map22kto1k]
+            else:
+                torch.nn.init.constant_(model.head.bias, 0.)
+                torch.nn.init.constant_(model.head.weight, 0.)
+                del state_dict['head.weight']
+                del state_dict['head.bias']
+                # logger.warning(f"Error in loading classifier head, re-init classifier head to 0")
+                print(f"Error in loading classifier head, re-init classifier head to 0")
 
         msg = model.load_state_dict(state_dict, strict=False)
 

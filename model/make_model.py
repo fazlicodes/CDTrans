@@ -174,17 +174,18 @@ class build_transformer(nn.Module):
         self.neck = cfg.MODEL.NECK
         self.neck_feat = cfg.TEST.NECK_FEAT
         self.task_type = cfg.MODEL.TASK_TYPE
-        if '384' in cfg.MODEL.Transformer_TYPE or 'small' in cfg.MODEL.Transformer_TYPE:
-            if 'swin' in cfg.MODEL.Transformer_TYPE:
-                self.in_planes = int(96 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))
-            else:
-                self.in_planes = 384 
+        self.in_planes = cfg.MODEL.IN_PLANES
+        # if '384' in cfg.MODEL.Transformer_TYPE or 'small' in cfg.MODEL.Transformer_TYPE:
+        #     if 'swin' in cfg.MODEL.Transformer_TYPE:
+        #         self.in_planes = int(96 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))
+        #     else:
+        #         self.in_planes = 384 
        
-        else:
-            if 'swin' in cfg.MODEL.Transformer_TYPE:
-                self.in_planes = int(128 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))
-            else:
-                self.in_planes = 768
+        # else:
+        #     if 'swin' in cfg.MODEL.Transformer_TYPE:
+        #         self.in_planes = int(128 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))
+        #     else:
+        #         self.in_planes = 768
 
         self.bottleneck_dim = 256
         print('using Transformer_type: {} as a backbone'.format(cfg.MODEL.Transformer_TYPE))
@@ -240,7 +241,7 @@ class build_transformer(nn.Module):
 
     def _load_parameter(self, pretrain_choice, model_path):
         if pretrain_choice == 'imagenet':
-            self.base.load_param(model_path)
+            self.base.load_pretrained(self.base, model_path)
             print('Loading pretrained ImageNet model......from {}'.format(model_path))
         elif pretrain_choice == 'un_pretrain':
             self.base.load_un_param(model_path)
