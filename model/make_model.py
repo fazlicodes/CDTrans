@@ -193,7 +193,6 @@ class build_transformer(nn.Module):
             if 'swin' in cfg.MODEL.Transformer_TYPE:
                 self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, 
                                                                 patch_size=cfg.MODEL.SWIN.PATCH_SIZE, 
-                                                                depths=cfg.MODEL.SWIN.DEPTHS, 
                                                                 stride_size=cfg.MODEL.STRIDE_SIZE, 
                                                                 drop_path_rate=cfg.MODEL.DROP_PATH)
             else:
@@ -285,7 +284,6 @@ class build_transformer(nn.Module):
 
     def load_param_finetune(self, model_path):
         param_dict = torch.load(model_path)
-        print(len(param_dict))
         for i in param_dict:
             if 'module.' in i: new_i = i.replace('module.','') 
             else: new_i = i 
@@ -442,22 +440,15 @@ class build_uda_transformer(nn.Module):
 
     def load_param_finetune(self, model_path):
         param_dict = torch.load(model_path)
-        count = 0 
         for i in param_dict:  
             if 'module.' in i: new_i = i.replace('module.','') 
             else: new_i = i
-            # print('model parameter: {} not match'.format(new_i))
-
             if new_i not in self.state_dict().keys():
-                count+=1
                 print('model parameter: {} not match'.format(new_i))
                 continue
-            # if self.state_dict()[new_i].shape != param_dict[i].shape:
-            #     print('model:{}\npretrained:{}'.format(self.state_dict()[new_i].shape, param_dict[i].shape))
+            if self.state_dict()[new_i].shape != param_dict[i].shape:
+                print('model:{}\npretrained:{}'.format(self.state_dict()[new_i].shape, param_dict[i].shape))
             self.state_dict()[new_i].copy_(param_dict[i])
-        print(count)
-        # print(self.base)
-        # print(param_dict.keys())
         print('Loading pretrained model for finetuning from {}'.format(model_path))
 
 
@@ -477,9 +468,13 @@ def make_model(cfg, num_class, camera_num, view_num):
     if cfg.MODEL.NAME == 'transformer':
         if cfg.MODEL.BLOCK_PATTERN == '3_branches':
             model = build_uda_transformer(num_class, camera_num, view_num, cfg, __factory_hh)
+            print(model)
+            print(len(model.state_dict()))
             print('===========building uda transformer===========')
         else:
             model = build_transformer(num_class, camera_num, view_num, cfg, __factory_hh)
+            print(model)
+            print(len(model.state_dict()))
             print('===========building transformer===========')
     else:
         print('===========ResNet===========')

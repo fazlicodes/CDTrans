@@ -1,4 +1,5 @@
 model=$1
+run=$2
 if [ ! -n "$1" ]
 then 
     echo 'pelease input the model para: {deit_base, deit_small,swin_small,swin_base}'
@@ -30,7 +31,7 @@ else
 fi
 
 python train.py --config_file configs/pretrain.yml MODEL.DEVICE_ID $gpus \
-OUTPUT_DIR '../logs/pretrain_final/'$model'/coco-flir/flir' \
+OUTPUT_DIR '../logs/pretrain_final/'$model'/coco-flir/flir/'$run \
 DATASETS.ROOT_TRAIN_DIR './data/cocoflir/mscoco.txt' \
 DATASETS.ROOT_TRAIN_DIR2 './data/cocoflir/flir.txt' \
 DATASETS.ROOT_TEST_DIR './data/cocoflir/flir.txt' \

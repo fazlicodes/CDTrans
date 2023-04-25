@@ -621,6 +621,7 @@ class SwinTransformer(nn.Module):
 
         
         checkpoint = torch.load(model_path, map_location='cpu')
+
         state_dict = checkpoint['model']
 
         # delete relative_position_index since we always re-init it
@@ -759,7 +760,7 @@ def resize_pos_embed(posemb, posemb_new, hight, width):
     return posemb
 
 def swin_base_patch4_window7_224_TransReID(img_size=224, patch_size=4, in_chans=3, num_classes=3,
-                 embed_dim=128, depths=[2, 2, 18, 2], num_heads=[4, 8, 16, 32],
+                 embed_dim=128, depths=[ 2, 2, 18, 2 ], num_heads=[ 4, 8, 16, 32 ],
                  window_size=7, mlp_ratio=4., qkv_bias=True, qk_scale=None,
                  drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
@@ -786,7 +787,7 @@ def swin_base_patch4_window7_224_TransReID(img_size=224, patch_size=4, in_chans=
     return model
 
 def swin_small_patch4_window7_224_TransReID(img_size=224, patch_size=4, in_chans=3, num_classes=3,
-                 embed_dim=96, depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24],
+                 embed_dim=96, depths=[ 2, 2, 18, 2 ], num_heads=[ 3, 6, 12, 24 ],
                  window_size=7, mlp_ratio=4., qkv_bias=True, qk_scale=None,
                  drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,

@@ -829,8 +829,9 @@ class SwinTransformer_uda(nn.Module):
 
         
         checkpoint = torch.load(model_path, map_location='cpu')
+        print(checkpoint.keys())
         state_dict = checkpoint['model']
-
+        
         # delete relative_position_index since we always re-init it
         relative_position_index_keys = [k for k in state_dict.keys() if "relative_position_index" in k]
         for k in relative_position_index_keys:
