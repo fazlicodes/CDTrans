@@ -78,6 +78,7 @@ _C.MODEL.UDA_STAGE = 'pretrain'
 _C.MODEL.FC_SETTING = 'TransReID'
 # one branch or three branch for BLOCK Pattern
 _C.MODEL.BLOCK_PATTERN = 'normal'
+_C.MODEL.IN_PLANES = 384
 
 # Swin Teansformer defaults
 _C.MODEL.SWIN = CN()
