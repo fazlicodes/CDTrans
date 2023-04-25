@@ -109,6 +109,7 @@ if __name__ == '__main__':
         val_loader,
         s_dataset, t_dataset,
         optimizer,
+        optimizer_d,
         optimizer_center,
         scheduler,  
         loss_func,
