@@ -240,7 +240,7 @@ def do_train_uda(cfg,
              val_loader,
              s_dataset, t_dataset,
              optimizer,
-             optimizer_d,
+            #  optimizer_d,
              optimizer_center,
              scheduler,
              loss_fn,
@@ -356,7 +356,7 @@ def do_train_uda(cfg,
 
             scaler.step(optimizer)
             scaler.update()
-            acc_d = (D_output == D_target).float().mean()
+            # acc_d = (D_output == D_target).float().mean()
             #train discriminator
             # with amp.autocast(enabled=True):
             #     def distill_loss(teacher_output, student_out):
@@ -408,13 +408,13 @@ def do_train_uda(cfg,
             acc_2_meter.update(acc2, 1)
             acc_2_pse_meter.update(acc2_pse, 1)
             d_losses.update(d_loss.item(), img.shape[0])
-            acc_d_meter.update(acc_d, img.shape[0])
+            # acc_d_meter.update(acc_d, img.shape[0])
 
             torch.cuda.synchronize()
             if (n_iter + 1) % log_period == 0:
-                logger.info("Epoch[{}] Iteration[{}/{}] Loss1: {:.3f}, Loss2: {:.3f}, Loss3: {:.3f},  Acc: {:.3f}, Acc2: {:.3f}, Acc2_pse: {:.3f}, Dicriminator_acc: {:.3f} Base Lr: {:.2e}"
+                logger.info("Epoch[{}] Iteration[{}/{}] Loss1: {:.3f}, Loss2: {:.3f}, Loss3: {:.3f},  Acc: {:.3f}, Acc2: {:.3f}, Acc2_pse: {:.3f}, Base Lr: {:.2e}"
                             .format(epoch, (n_iter + 1), len(train_loader),
-                                    loss1_meter.avg, loss2_meter.avg, loss3_meter.avg, acc_meter.avg, acc_2_meter.avg, acc_2_pse_meter.avg,acc_d_meter.avg, scheduler._get_lr(epoch)[0]))
+                                    loss1_meter.avg, loss2_meter.avg, loss3_meter.avg, acc_meter.avg, acc_2_meter.avg, acc_2_pse_meter.avg, scheduler._get_lr(epoch)[0]))
 
         end_time = time.time()
         time_per_batch = (end_time - start_time) / (n_iter + 1)
