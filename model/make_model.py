@@ -306,16 +306,17 @@ class build_uda_transformer(nn.Module):
         self.neck_feat = cfg.TEST.NECK_FEAT
         self.task_type = cfg.MODEL.TASK_TYPE
         self.in_planes = 384 if 'small' in cfg.MODEL.Transformer_TYPE else 768
-        if 'small' in cfg.MODEL.Transformer_TYPE:
-            if 'swin' in cfg.MODEL.Transformer_TYPE:
-                    self.in_planes = int(96 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))
-            else:
-                self.in_planes = 384
-        else:
-            if 'swin' in cfg.MODEL.Transformer_TYPE:
-                    self.in_planes = int(128 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))
-            else:
-                self.in_planes = 768
+        # if 'small' in cfg.MODEL.Transformer_TYPE:
+        #     if 'swin' in cfg.MODEL.Transformer_TYPE:
+        #             self.in_planes = int(96 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))
+        #     else:
+        #         self.in_planes = 384
+        # else:
+        #     if 'swin' in cfg.MODEL.Transformer_TYPE:
+        #             self.in_planes = int(128 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))
+        #     else:
+        #         self.in_planes = 768
+        self.in_planes = cfg.MODEL.IN_PLANES
 
         print('using Transformer_type: {} as a backbone'.format(cfg.MODEL.Transformer_TYPE))
         if cfg.MODEL.TASK_TYPE == 'classify_DA':

@@ -20,7 +20,7 @@ elif [ $model == 'swin_base' ]
 then
     model_type='swin_base_patch4_window7_224_TransReID'
     pretrain_model='swin_base_patch4_window7_224_22k.pth'
-    in_planes=768
+    in_planes=1024
     gpus="('0,1')"
 else
     model_type='vit_small_patch16_224_TransReID'
