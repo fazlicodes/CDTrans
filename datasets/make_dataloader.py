@@ -80,13 +80,13 @@ def make_dataloader(cfg):
         T.RandomCrop((224, 224)),
         T.RandomHorizontalFlip(),
         T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        T.Normalize([0.4017, 0.3791, 0.3656], [0.2093, 0.2019, 0.1996])
     ])
     val_transforms = T.Compose([
         T.Resize((256, 256)),
         T.CenterCrop((224, 224)),
         T.ToTensor(),
-        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        T.Normalize([0.5776, 0.5776, 0.5776], [0.1394, 0.1394, 0.1394])
     ])
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
