@@ -103,9 +103,9 @@ _C.INPUT.RE_PROB = 0.5
 
 _C.INPUT.AA_PROB = 0.0
 # Values to be used for image normalization
-_C.INPUT.PIXEL_MEAN = [0.485, 0.456, 0.406]
+_C.INPUT.PIXEL_MEAN = [0.5776, 0.5776, 0.5776]
 # Values to be used for image normalization
-_C.INPUT.PIXEL_STD = [0.229, 0.224, 0.225]
+_C.INPUT.PIXEL_STD = [0.1319, 0.1319, 0.1319]
 _C.INPUT.SIZE_CROP = [224, 224]
 
 # Value of padding size
