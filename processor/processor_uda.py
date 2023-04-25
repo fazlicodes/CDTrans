@@ -247,7 +247,7 @@ def do_train_uda(cfg,
     log_period = cfg.SOLVER.LOG_PERIOD
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
     eval_period = cfg.SOLVER.EVAL_PERIOD
-
+    criterion = nn.CrossEntropyLoss()
     device = "cuda"
     epochs = cfg.SOLVER.MAX_EPOCHS
 
@@ -271,6 +271,7 @@ def do_train_uda(cfg,
     acc_meter = AverageMeter()
     acc_2_meter = AverageMeter()
     acc_2_pse_meter = AverageMeter()
+    d_losses = AverageMeter()
 
     if cfg.MODEL.TASK_TYPE == 'classify_DA':
         evaluator = Class_accuracy_eval(logger=logger, dataset=cfg.DATASETS.NAMES)
@@ -322,24 +323,29 @@ def do_train_uda(cfg,
             t_pseudo_target = vid[1].to(device)
             s_idx,t_idx = idx
             label_knn = label_memory2[t_idx].cuda()
-
             optimizer.zero_grad()
             optimizer_center.zero_grad()
-  
+            p_one = torch.ones(img.shape[0], dtype=torch.long).to(device)
+            p_zero = torch.zeros(t_img.shape[0], dtype=torch.long).to(device)
             target_cam = target_cam.to(device)
             target_view = target_view.to(device)
+
+            #train classifier
             with amp.autocast(enabled=True):
                 def distill_loss(teacher_output, student_out):
                     teacher_out = F.softmax(teacher_output, dim=-1)    
                     loss = torch.sum( -teacher_out * F.log_softmax(student_out, dim=-1), dim=-1)
                     return loss.mean()
                     
-                (self_score1, self_feat1, _), (score2, feat2, _), (score_fusion, _, _), aux_data  = model(img, t_img, target, cam_label=target_cam, view_label=target_view ) # output: source , target , source_target_fusion
+                (self_score1, self_feat1, _), (score2, feat2, _), (score_fusion, _, _), aux_data, p_source, p_target  = model(img, t_img, target, cam_label=target_cam, view_label=target_view ) # output: source , target , source_target_fusion
                 
                 loss1 = loss_fn(self_score1, self_feat1, target, target_cam)
                 loss2 = loss_fn(score2, feat2, t_pseudo_target, target_cam)
                 loss3 = distill_loss(score_fusion, score2)
-                loss = loss2 + loss3 + loss1
+                D_output = torch.cat([p_source, p_target], dim=0)
+                D_target = torch.cat([p_zero, p_one], dim=0)
+                d_loss = criterion(D_output, D_target)
+                loss = loss2 + loss3 + loss1 - 0.25*d_loss 
 
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
@@ -347,6 +353,30 @@ def do_train_uda(cfg,
 
             scaler.step(optimizer)
             scaler.update()
+
+            #train discriminator
+            # with amp.autocast(enabled=True):
+            #     def distill_loss(teacher_output, student_out):
+            #         teacher_out = F.softmax(teacher_output, dim=-1)    
+            #         loss = torch.sum( -teacher_out * F.log_softmax(student_out, dim=-1), dim=-1)
+            #         return loss.mean()
+                    
+            #     (self_score1, self_feat1, _), (score2, feat2, _), (score_fusion, _, _), aux_data, p_source, p_target  = model(img, t_img, target, cam_label=target_cam, view_label=target_view ) # output: source , target , source_target_fusion
+                
+            #     loss1 = loss_fn(self_score1, self_feat1, target, target_cam)
+            #     loss2 = loss_fn(score2, feat2, t_pseudo_target, target_cam)
+            #     loss3 = distill_loss(score_fusion, score2)
+            #     loss_target = nn.BCELoss()(p_target, p_one)
+            #     loss_d = loss2 + loss3 + loss1 + loss_target
+
+           
+
+            # scaler.scale(d_loss).backward()
+            # scaler.unscale_(optimizer_d)
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+
+            # scaler.step(optimizer_d)
+            # scaler.update()
 
             if 'center' in cfg.MODEL.METRIC_LOSS_TYPE:
                 for param in center_criterion.parameters():
@@ -374,6 +404,8 @@ def do_train_uda(cfg,
             acc_meter.update(acc, 1)
             acc_2_meter.update(acc2, 1)
             acc_2_pse_meter.update(acc2_pse, 1)
+            d_losses.update(d_loss.item(), img.shape[0])
+
 
             torch.cuda.synchronize()
             if (n_iter + 1) % log_period == 0:

@@ -1,4 +1,7 @@
 *.zip
 *.pth
 */__pycache__/*
-data
+*bad_images*
+*conf_scores*
+data/
+*.pyc*

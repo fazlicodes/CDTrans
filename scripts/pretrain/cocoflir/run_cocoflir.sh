@@ -1,7 +1,7 @@
 model=$1
 if [ ! -n "$1" ]
 then 
-    echo 'pelease input the model para: {deit_base, deit_small, cvt, t2t, cnn, vit}'
+    echo 'pelease input the model para: {deit_base, deit_small, cvt}'
     exit 8
 fi
 if [ $model == 'cvt' ]

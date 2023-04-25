@@ -188,6 +188,7 @@ class Attention_3_branches(nn.Module):
         return q, k, v
 
     def forward(self, x, x2, h, w, use_attn=True, inference_target_only=False):
+
         if (
             self.conv_proj_q is not None
             or self.conv_proj_k is not None
@@ -677,7 +678,14 @@ class ConvolutionalVisionTransformer_3_branches(nn.Module):
                     x, x2, x1_x2_fusion, cls_tokens, cls_tokens2, cls_tokens3, cross_attn_list = getattr(self, f'stage{i}')(x, x2, cross_attn_list, use_cross=False, use_attn=True, domain_norm=False,inference_target_only=False)
 
                 if inference_target_only:
-                    x2 = self.norm(x2)
+                    if self.cls_token:
+                        x2 = self.norm(cls_tokens2)
+                        x2 = torch.squeeze(x2)
+                    else:
+                        x2 = rearrange(x2, 'b c h w -> b (h w) c')
+                        x2 = self.norm(x2)
+                        x2 = torch.mean(x2, dim=1)
+                        
                     return None, x2, None, None
                 else:
                     # x = self.norm(x)
@@ -724,7 +732,7 @@ class ConvolutionalVisionTransformer_3_branches(nn.Module):
         return x, x2, x1_x2_fusion, cross_attn_list
 
     def forward(self, x, x2, cam_label=None, view_label=None, domain_norm=False, cls_embed_specific=False,inference_target_only=False):
-        x = self.forward_features(x, x2, cam_label=None, view_label=None, domain_norm=False, cls_embed_specific=False,inference_target_only=False)
+        x = self.forward_features(x, x2, cam_label=None, view_label=None, domain_norm=False, cls_embed_specific=False,inference_target_only=inference_target_only)
         # x = self.head(x)
 
         return x
@@ -797,7 +805,7 @@ def uda_cvt_21_224_TransReID(pretrained = False, index=0, **kwargs):
         init=getattr(msvit_spec, 'INIT', 'trunc_norm'),
         spec=msvit_spec
     )
-    print(model)
+    # print(model)
     #if pretrained:
         #model.load_state_dict(torch.load("./data/pretrainModel/CvT-21-224x224-IN-1k.pth", map_location="cpu"), strict=False)
     return model

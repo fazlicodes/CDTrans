@@ -59,7 +59,7 @@ TEST:
   RE_RANKING: False
   RE_RANKING_TRACK: False
 
-  WEIGHT: '../logs/trans4DA/CVT/transformer_120.pth'
+  WEIGHT: '/home/amrin.kareem/Downloads/AI_Project/logs/pretrain/cvt/coco-flir/mscoco/transformer_best_model.pth'
   NECK_FEAT: 'after'
   FEAT_NORM: 'yes'
 
