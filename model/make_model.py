@@ -380,8 +380,7 @@ class build_uda_transformer(nn.Module):
             if model_path == '':
                 print('make model without initialization')
             else:
-                self.base.load_pretrained(self.base, model_path)
-
+                # self.base.load_pretrained(self.base, model_path)
                 self.load_param_finetune(model_path)
                 print('Loading pretrained model......from {}'.format(model_path))
 
@@ -447,8 +446,8 @@ class build_uda_transformer(nn.Module):
         for i in param_dict:  
             if 'module.' in i: new_i = i.replace('module.','') 
             else: new_i = i
-            if 'base.' in i:
-                continue
+            # if 'base.' in i:
+            #     continue
             if new_i not in self.state_dict().keys():
                 print('model parameter: {} not match'.format(new_i))
                 continue

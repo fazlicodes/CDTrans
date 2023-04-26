@@ -77,7 +77,7 @@ for i in cat:
         if cls == 'bicycle':
              subset_size = len(files)
         elif cls=='car' or cls=='person':
-             subset_size=38000
+             subset_size=10000
         # Choose a random subset of files from the class subdirectory
         subset = random.sample(files, min(subset_size, len(files)))
 

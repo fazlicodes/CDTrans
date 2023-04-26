@@ -29,7 +29,7 @@ else
     in_planes=384
 fi
 
-python train.py --config_file configs/uda.yml MODEL.DEVICE_ID $gpus \
+python test.py --config_file configs/uda.yml MODEL.DEVICE_ID $gpus \
 OUTPUT_DIR '../logs/uda/'$model'/coco-flir/'$run \
 DATASETS.ROOT_TRAIN_DIR './data/cocoflir/mscoco.txt' \
 DATASETS.ROOT_TRAIN_DIR2 './data/cocoflir/flir.txt' \
@@ -38,3 +38,4 @@ DATASETS.NAMES "cocoflir" DATASETS.NAMES2 "cocoflir" \
 MODEL.Transformer_TYPE $model_type \
 MODEL.PRETRAIN_PATH '../logs/pretrain_final/'$model'/coco-flir/flir/1/transformer_10.pth' \
 MODEL.IN_PLANES $in_planes \
+TEST.WEIGHT '../logs/pretrain_final/'$model'/coco-flir/flir/1/transformer_10.pth' \

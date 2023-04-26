@@ -56,6 +56,7 @@ def obtain_label(logger, val_loader, model, distance='cosine', threshold=0):
     _, predict = torch.max(all_output, 1)
 
     accuracy = torch.sum(torch.squeeze(predict).float() == all_label).item() / float(all_label.size()[0])
+    # pred_label = predict.numpy()
     if distance == 'cosine':
         all_fea = torch.cat((all_fea, torch.ones(all_fea.size(0), 1)), 1)
         all_fea = (all_fea.t() / torch.norm(all_fea, p=2, dim=1)).t()
@@ -147,6 +148,19 @@ def long_matmul(x,y, chunk_size=1000, topk=2, target_sample_num=2):
         target_knnidxs = target_knnidxs.flatten()
 
     return knnidxs, target_knnsims, target_knnidxs, knnidx_topks
+
+def make_weight_for_balanced_classes(images, nclasses):
+    count = [0]*nclasses
+    for item in images:
+        count[item[1]] += 1
+    weight_per_class = [0.]*nclasses
+    N = float(sum(count))
+    for i in range(nclasses):
+        weight_per_class[i] = N/float(count[i])
+    weight = [0]*len(images)
+    for idx, val in enumerate(images):
+        weight[idx] = weight_per_class[val[1]]
+    return weight
 
 def compute_knn_idx(logger, model, train_loader1, train_loader2, feat_memory1, feat_memory2, label_memory1, label_memory2, img_num1, img_num2, target_sample_num=2, topk=1, reliable_threshold=0.0):
     #assert((torch.sum(feat_memory2,axis=1)!=0).all())
@@ -251,12 +265,17 @@ def generate_new_dataset(cfg, logger, label_memory2, s_dataset, t_dataset, knnid
         ])
     new_dataset = ImageDataset(train_set, train_transforms)
 
+    weights = make_weight_for_balanced_classes(new_dataset.dataset, 3)
+    weights = torch.DoubleTensor(weights)
+    sampler = torch.utils.data.sampler.WeightedRandomSampler(weights, len(weights))
+
     num_workers = cfg.DATALOADER.NUM_WORKERS
     train_loader = DataLoader(
             new_dataset, batch_size=cfg.SOLVER.IMS_PER_BATCH,
             shuffle=True, drop_last = True, 
             num_workers=num_workers, collate_fn=source_target_train_collate_fn,
             pin_memory=True, persistent_workers=True,
+            sampler=sampler,
             )
 
     return train_loader
