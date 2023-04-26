@@ -10,6 +10,7 @@ from .backbones.swin_transformer_uda import uda_swin_base_patch4_window7_224_Tra
 from .backbones.vit_pytorch_uda import uda_vit_base_patch16_224_TransReID, uda_vit_small_patch16_224_TransReID
 import torch.nn.functional as F
 from loss.metric_learning import Arcface, Cosface, AMSoftmax, CircleLoss
+import numpy as np
 
 def weights_init_kaiming(m):
     classname = m.__class__.__name__
@@ -193,6 +194,7 @@ class build_transformer(nn.Module):
             if 'swin' in cfg.MODEL.Transformer_TYPE:
                 self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, 
                                                                 patch_size=cfg.MODEL.SWIN.PATCH_SIZE, 
+                                                                depths=cfg.MODEL.SWIN.DEPTHS, 
                                                                 stride_size=cfg.MODEL.STRIDE_SIZE, 
                                                                 drop_path_rate=cfg.MODEL.DROP_PATH)
             else:
@@ -209,7 +211,7 @@ class build_transformer(nn.Module):
                                                             drop_path_rate=cfg.MODEL.DROP_PATH)
 
         self.gap = nn.AdaptiveAvgPool2d(1)
-
+        
         self.num_classes = num_classes
         self.ID_LOSS_TYPE = cfg.MODEL.ID_LOSS_TYPE
         if self.ID_LOSS_TYPE == 'arcface':
@@ -284,6 +286,7 @@ class build_transformer(nn.Module):
 
     def load_param_finetune(self, model_path):
         param_dict = torch.load(model_path)
+        print(len(param_dict))
         for i in param_dict:
             if 'module.' in i: new_i = i.replace('module.','') 
             else: new_i = i 
@@ -292,6 +295,9 @@ class build_transformer(nn.Module):
                 continue
             self.state_dict()[new_i].copy_(param_dict[i])
         print('Loading pretrained model for finetuning from {}'.format(model_path))
+
+
+
 
 class build_uda_transformer(nn.Module):
     def __init__(self, num_classes, camera_num, view_num, cfg, factory):
@@ -303,18 +309,18 @@ class build_uda_transformer(nn.Module):
         self.neck = cfg.MODEL.NECK
         self.neck_feat = cfg.TEST.NECK_FEAT
         self.task_type = cfg.MODEL.TASK_TYPE
+        self.use_disc = cfg.MODEL.USE_DISC
         self.in_planes = 384 if 'small' in cfg.MODEL.Transformer_TYPE else 768
-        # if 'small' in cfg.MODEL.Transformer_TYPE:
-        #     if 'swin' in cfg.MODEL.Transformer_TYPE:
-        #             self.in_planes = int(96 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))
-        #     else:
-        #         self.in_planes = 384
-        # else:
-        #     if 'swin' in cfg.MODEL.Transformer_TYPE:
-        #             self.in_planes = int(128 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))
-        #     else:
-        #         self.in_planes = 768
-        self.in_planes = cfg.MODEL.IN_PLANES
+        if 'small' in cfg.MODEL.Transformer_TYPE:
+            if 'swin' in cfg.MODEL.Transformer_TYPE:
+                    self.in_planes = int(96 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))
+            else:
+                self.in_planes = 384
+        else:
+            if 'swin' in cfg.MODEL.Transformer_TYPE:
+                    self.in_planes = int(128 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))
+            else:
+                self.in_planes = 768
 
         print('using Transformer_type: {} as a backbone'.format(cfg.MODEL.Transformer_TYPE))
         if cfg.MODEL.TASK_TYPE == 'classify_DA':
@@ -342,6 +348,12 @@ class build_uda_transformer(nn.Module):
                                                             use_cross=cfg.MODEL.USE_CROSS, 
                                                             use_attn=cfg.MODEL.USE_ATTN,  
                                                             block_pattern=cfg.MODEL.BLOCK_PATTERN)
+            
+        
+
+        # use discriminator
+        # if cfg.MODEL.USE_DISC:
+        #     self.discriminator = Discriminator(self.in_planes)
 
         self.gap = nn.AdaptiveAvgPool2d(1)
         self.num_classes = num_classes
@@ -417,6 +429,9 @@ class build_uda_transformer(nn.Module):
                 cls_score2 = self.classifier(feat2)
                 cls_score3 = self.classifier(feat3) if self.training else None
 
+            # if self.training and self.use_disc:
+            #     return (cls_score, global_feat, feat), (cls_score2, global_feat2, feat2), (cls_score3, global_feat3, feat3), cross_attn, self.discriminator(feat), self.discriminator(feat2)
+
             return (cls_score, global_feat, feat), (cls_score2, global_feat2, feat2), (cls_score3, global_feat3, feat3), cross_attn   # source , target , source_target_fusion
             
         else:
@@ -440,15 +455,22 @@ class build_uda_transformer(nn.Module):
 
     def load_param_finetune(self, model_path):
         param_dict = torch.load(model_path)
+        count = 0 
         for i in param_dict:  
             if 'module.' in i: new_i = i.replace('module.','') 
             else: new_i = i
+            # print('model parameter: {} not match'.format(new_i))
+
             if new_i not in self.state_dict().keys():
+                count+=1
                 print('model parameter: {} not match'.format(new_i))
                 continue
-            if self.state_dict()[new_i].shape != param_dict[i].shape:
-                print('model:{}\npretrained:{}'.format(self.state_dict()[new_i].shape, param_dict[i].shape))
+            # if self.state_dict()[new_i].shape != param_dict[i].shape:
+            #     print('model:{}\npretrained:{}'.format(self.state_dict()[new_i].shape, param_dict[i].shape))
             self.state_dict()[new_i].copy_(param_dict[i])
+        print(count)
+        # print(self.base)
+        # print(param_dict.keys())
         print('Loading pretrained model for finetuning from {}'.format(model_path))
 
 
@@ -468,13 +490,9 @@ def make_model(cfg, num_class, camera_num, view_num):
     if cfg.MODEL.NAME == 'transformer':
         if cfg.MODEL.BLOCK_PATTERN == '3_branches':
             model = build_uda_transformer(num_class, camera_num, view_num, cfg, __factory_hh)
-            print(model)
-            print(len(model.state_dict()))
             print('===========building uda transformer===========')
         else:
             model = build_transformer(num_class, camera_num, view_num, cfg, __factory_hh)
-            print(model)
-            print(len(model.state_dict()))
             print('===========building transformer===========')
     else:
         print('===========ResNet===========')

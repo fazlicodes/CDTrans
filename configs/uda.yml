@@ -12,6 +12,7 @@ MODEL:
   BLOCK_PATTERN: '3_branches'
   TASK_TYPE: 'classify_DA'
   UDA_STAGE: 'UDA'
+  USE_DISC: False
 #  CAMERA_EMBEDDING: True
 #  VIEWPOINT_EMBEDDING: True
 

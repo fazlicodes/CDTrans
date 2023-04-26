@@ -261,6 +261,22 @@ def generate_new_dataset(cfg, logger, label_memory2, s_dataset, t_dataset, knnid
 
     return train_loader
 
+class Discriminator(nn.Module):
+    def __init__(self, in_dim, h=500):
+        super(Discriminator, self).__init__()
+        self.l1 = nn.Linear(in_dim, h)
+        self.l2 = nn.Linear(h, h)
+        self.l3 = nn.Linear(h, 2)
+        self.l4 = nn.LogSoftmax(dim=1)
+        self.slope = 0.25
+
+    def forward(self, x):
+        x = F.leaky_relu(self.l1(x), self.slope)
+        x = F.leaky_relu(self.l2(x), self.slope)
+        x = self.l3(x)
+        x = self.l4(x)
+        return x
+    
 def do_train_uda(cfg,
              model,
              center_criterion,
@@ -279,7 +295,6 @@ def do_train_uda(cfg,
     log_period = cfg.SOLVER.LOG_PERIOD
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
     eval_period = cfg.SOLVER.EVAL_PERIOD
-
     device = "cuda"
     epochs = cfg.SOLVER.MAX_EPOCHS
 
@@ -303,6 +318,20 @@ def do_train_uda(cfg,
     acc_meter = AverageMeter()
     acc_2_meter = AverageMeter()
     acc_2_pse_meter = AverageMeter()
+
+    #discriminator
+    if cfg.MODEL.USE_DISC:
+        
+        disc_model = Discriminator(model.in_planes)
+        disc_model.to(device)
+        disc_model.train()
+
+        d_criterion = nn.CrossEntropyLoss()
+        d_optimizer = torch.optim.Adam( disc_model.parameters(),
+                                 lr=1e-3, betas=(.5, .999), weight_decay=2.5e-5)
+        d_losses = AverageMeter()
+        print("Using Discriminator network, ")
+
 
     if cfg.MODEL.TASK_TYPE == 'classify_DA':
         evaluator = Class_accuracy_eval(logger=logger, dataset=cfg.DATASETS.NAMES)
@@ -342,6 +371,10 @@ def do_train_uda(cfg,
         acc_2_meter.reset()
         acc_2_pse_meter.reset()
         evaluator.reset()
+
+        if cfg.MODEL.USE_DISC:
+            d_losses.reset()
+
         scheduler.step(epoch)
 
         if (epoch-1) % update_epoch == 0:
@@ -367,9 +400,9 @@ def do_train_uda(cfg,
             # print(t_img.shape)
             optimizer.zero_grad()
             optimizer_center.zero_grad()
-  
             target_cam = target_cam.to(device)
             target_view = target_view.to(device)
+
             with amp.autocast(enabled=True):
                 def distill_loss(teacher_output, student_out):
                     teacher_out = F.softmax(teacher_output, dim=-1)    
@@ -377,11 +410,35 @@ def do_train_uda(cfg,
                     return loss.mean()
                     
                 (self_score1, self_feat1, _), (score2, feat2, _), (score_fusion, _, _), aux_data  = model(img, t_img, target, cam_label=target_cam, view_label=target_view ) # output: source , target , source_target_fusion
-                
+            
                 loss1 = loss_fn(self_score1, self_feat1, target, target_cam)
                 loss2 = loss_fn(score2, feat2, t_pseudo_target, target_cam)
                 loss3 = distill_loss(score_fusion, score2)
+
                 loss = loss2 + loss3 + loss1
+
+                # Add discriminator
+                if cfg.MODEL.USE_DISC:
+
+                    p_source = disc_model(self_feat1)
+                    p_target = disc_model(feat2)
+
+                    D_target_source = torch.tensor([0] * img.shape[0], dtype=torch.long).to(device)
+                    D_target_target = torch.tensor([1] * t_img.shape[0], dtype=torch.long).to(device)
+
+                    D_output = torch.cat([p_source, p_target], dim=0)
+                    D_target = torch.cat([D_target_source, D_target_target], dim=0)
+
+                    loss_d = d_criterion(D_output,D_target)
+                    d_optimizer.zero_grad()
+                    loss_d.backward()
+                    d_optimizer.step()
+                    d_losses.update(loss_d.item(), img.shape[0])
+                    acc_d = (D_output.max(1)[1] == D_target).float().mean()
+                
+            # if cfg.MODEL.USE_DISC:
+                # train discriminator
+                
 
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
@@ -416,6 +473,7 @@ def do_train_uda(cfg,
             acc_meter.update(acc, 1)
             acc_2_meter.update(acc2, 1)
             acc_2_pse_meter.update(acc2_pse, 1)
+
 
             torch.cuda.synchronize()
             if (n_iter + 1) % log_period == 0:

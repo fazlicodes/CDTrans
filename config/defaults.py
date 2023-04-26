@@ -79,7 +79,7 @@ _C.MODEL.FC_SETTING = 'TransReID'
 # one branch or three branch for BLOCK Pattern
 _C.MODEL.BLOCK_PATTERN = 'normal'
 _C.MODEL.IN_PLANES = 384
-
+_C.MODEL.USE_DISC = False
 # Swin Teansformer defaults
 _C.MODEL.SWIN = CN()
 _C.MODEL.SWIN.EMBED_DIM = 128
