@@ -392,6 +392,7 @@ class build_uda_transformer(nn.Module):
             if model_path == '':
                 print('make model without initialization')
             else:
+                # self.base.load_pretrained(self.base, model_path)
                 self.load_param_finetune(model_path)
                 print('Loading pretrained model......from {}'.format(model_path))
 
@@ -455,12 +456,13 @@ class build_uda_transformer(nn.Module):
 
     def load_param_finetune(self, model_path):
         param_dict = torch.load(model_path)
-        count = 0 
+        # print(param_dict.keys())
+       
         for i in param_dict:  
             if 'module.' in i: new_i = i.replace('module.','') 
             else: new_i = i
-            # print('model parameter: {} not match'.format(new_i))
-
+            # if 'base.' in i:
+            #     continue
             if new_i not in self.state_dict().keys():
                 count+=1
                 print('model parameter: {} not match'.format(new_i))

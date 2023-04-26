@@ -783,9 +783,9 @@ class SwinTransformer_uda(nn.Module):
                     return None, x2, None, None
             else:
 
-                x1 = self.norm(x1)  # B L C
-                x1 = self.avgpool(x1.transpose(1, 2))  # B C 1
-                x1 = torch.flatten(x1, 1)
+                x = self.norm(x)  # B L C
+                x = self.avgpool(x.transpose(1, 2))  # B C 1
+                x = torch.flatten(x, 1)
 
                 x2 = self.norm(x2)  # B L C
                 x2 = self.avgpool(x2.transpose(1, 2))  # B C 1
@@ -825,12 +825,12 @@ class SwinTransformer_uda(nn.Module):
         flops += self.num_features * self.num_classes
         return flops
 
-    def load_pretrained(self, model, model_path, logger):
+    def load_pretrained(self, model, model_path, logger=None):
 
         
         checkpoint = torch.load(model_path, map_location='cpu')
-        print(checkpoint.keys())
-        state_dict = checkpoint['model']
+        # print(model.state_dict().keys())
+        state_dict = checkpoint
         
         # delete relative_position_index since we always re-init it
         relative_position_index_keys = [k for k in state_dict.keys() if "relative_position_index" in k]
@@ -850,12 +850,15 @@ class SwinTransformer_uda(nn.Module):
         # bicubic interpolate relative_position_bias_table if not match
         relative_position_bias_table_keys = [k for k in state_dict.keys() if "relative_position_bias_table" in k]
         for k in relative_position_bias_table_keys:
+            if 'base.' in k: new_k = k.replace('base.','')
+            else: new_k = k
             relative_position_bias_table_pretrained = state_dict[k]
-            relative_position_bias_table_current = model.state_dict()[k]
+            relative_position_bias_table_current = model.state_dict()[new_k]
             L1, nH1 = relative_position_bias_table_pretrained.size()
             L2, nH2 = relative_position_bias_table_current.size()
             if nH1 != nH2:
-                logger.warning(f"Error in loading {k}, passing......")
+                # logger.warning(f"Error in loading {k}, passing......")
+                print(f"Error in loading {k}, passing......")
             else:
                 if L1 != L2:
                     # bicubic interpolate relative_position_bias_table if not match
@@ -870,12 +873,15 @@ class SwinTransformer_uda(nn.Module):
         absolute_pos_embed_keys = [k for k in state_dict.keys() if "absolute_pos_embed" in k]
         for k in absolute_pos_embed_keys:
             # dpe
+            if 'base.' in k: new_k = k.replace('base.','')
+            else: new_k = k
             absolute_pos_embed_pretrained = state_dict[k]
-            absolute_pos_embed_current = model.state_dict()[k]
+            absolute_pos_embed_current = model.state_dict()[new_k]
             _, L1, C1 = absolute_pos_embed_pretrained.size()
             _, L2, C2 = absolute_pos_embed_current.size()
             if C1 != C1:
-                logger.warning(f"Error in loading {k}, passing......")
+                # logger.warning(f"Error in loading {k}, passing......")
+                print(f"Error in loading {k}, passing......")
             else:
                 if L1 != L2:
                     S1 = int(L1 ** 0.5)
@@ -889,24 +895,25 @@ class SwinTransformer_uda(nn.Module):
                     state_dict[k] = absolute_pos_embed_pretrained_resized
 
         # check classifier, if not match, then re-init classifier to zero
-        head_bias_pretrained = state_dict['head.bias']
-        Nc1 = head_bias_pretrained.shape[0]
-        Nc2 = model.head.bias.shape[0]
-        if (Nc1 != Nc2):
-            if Nc1 == 21841 and Nc2 == 1000:
-                logger.info("loading ImageNet-22K weight to ImageNet-1K ......")
-                map22kto1k_path = f'data/map22kto1k.txt'
-                with open(map22kto1k_path) as f:
-                    map22kto1k = f.readlines()
-                map22kto1k = [int(id22k.strip()) for id22k in map22kto1k]
-                state_dict['head.weight'] = state_dict['head.weight'][map22kto1k, :]
-                state_dict['head.bias'] = state_dict['head.bias'][map22kto1k]
-            else:
-                torch.nn.init.constant_(model.head.bias, 0.)
-                torch.nn.init.constant_(model.head.weight, 0.)
-                del state_dict['head.weight']
-                del state_dict['head.bias']
-                logger.warning(f"Error in loading classifier head, re-init classifier head to 0")
+        # head_bias_pretrained = state_dict['head.bias']
+        # Nc1 = head_bias_pretrained.shape[0]
+        # Nc2 = model.head.bias.shape[0]
+        # if (Nc1 != Nc2):
+        #     if Nc1 == 21841 and Nc2 == 1000:
+        #         # logger.info("loading ImageNet-22K weight to ImageNet-1K ......")
+        #         map22kto1k_path = f'data/map22kto1k.txt'
+        #         with open(map22kto1k_path) as f:
+        #             map22kto1k = f.readlines()
+        #         map22kto1k = [int(id22k.strip()) for id22k in map22kto1k]
+        #         state_dict['head.weight'] = state_dict['head.weight'][map22kto1k, :]
+        #         state_dict['head.bias'] = state_dict['head.bias'][map22kto1k]
+        #     else:
+        # torch.nn.init.constant_(model.head.bias, 0.)
+        # torch.nn.init.constant_(model.head.weight, 0.)
+        # del state_dict['head.weight']
+        # del state_dict['head.bias']
+        # # logger.warning(f"Error in loading classifier head, re-init classifier head to 0")
+        # print(f"Error in loading classifier head, re-init classifier head to 0")
 
         msg = model.load_state_dict(state_dict, strict=False)
 

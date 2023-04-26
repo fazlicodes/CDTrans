@@ -28,6 +28,19 @@ __factory = {
 
 }
 
+def make_weight_for_balanced_classes(images, nclasses):
+    count = [0]*nclasses
+    for item in images:
+        count[item[1]] += 1
+    weight_per_class = [0.]*nclasses
+    N = float(sum(count))
+    for i in range(nclasses):
+        weight_per_class[i] = N/float(count[i])
+    weight = [0]*len(images)
+    for idx, val in enumerate(images):
+        weight[idx] = weight_per_class[val[1]]
+    return weight
+
 def train_collate_fn(batch):
     """
     # collate_fn这个函数的输入就是一个list，list的长度是一个batch size，list中的每个元素都是__getitem__得到的结果
@@ -93,7 +106,10 @@ def make_dataloader(cfg):
     dataset = __factory[cfg.DATASETS.NAMES](root_train=cfg.DATASETS.ROOT_TRAIN_DIR,root_val=cfg.DATASETS.ROOT_TEST_DIR, plus_num_id=cfg.DATASETS.PLUS_NUM_ID)
     train_set = ImageDataset(dataset.train, train_transforms)
     train_set1 = ImageDataset(dataset.train, val_transforms)
-    
+
+    weight = make_weight_for_balanced_classes(dataset.train, 3)
+    weight=torch.DoubleTensor(weight)
+    sampler = torch.utils.data.sampler.WeightedRandomSampler(weight, len(weight))
     train_set_normal = ImageDataset(dataset.train, val_transforms)
     img_num1 = len(dataset.train)
     
@@ -122,7 +138,8 @@ def make_dataloader(cfg):
     elif cfg.MODEL.UDA_STAGE == 'UDA':
         train_loader = DataLoader(
                 train_set, batch_size=cfg.SOLVER.IMS_PER_BATCH,
-                sampler=RandomIdentitySampler(dataset.train, cfg.SOLVER.IMS_PER_BATCH, cfg.DATALOADER.NUM_INSTANCE),
+                # sampler=RandomIdentitySampler(dataset.train, cfg.SOLVER.IMS_PER_BATCH, cfg.DATALOADER.NUM_INSTANCE),
+                sampler=sampler,
                 num_workers=num_workers, collate_fn=train_collate_fn
             )
         train_loader1 = DataLoader(
