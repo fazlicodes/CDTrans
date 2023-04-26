@@ -355,7 +355,7 @@ def do_train_uda(cfg,
             train_loader = generate_new_dataset(cfg, logger, label_memory2, s_dataset, t_dataset, knnidx, target_knnidx, target_label, label_memory1, img_num1, img_num2, with_pseudo_label_filter = cfg.SOLVER.WITH_PSEUDO_LABEL_FILTER)
                 
         model.train()
-
+        i = 0
         for n_iter, (imgs, vid, target_cam, target_view, file_name, idx) in enumerate(train_loader):
             img = imgs[0].to(device)
             t_img = imgs[1].to(device) #target img
@@ -416,7 +416,7 @@ def do_train_uda(cfg,
             acc_meter.update(acc, 1)
             acc_2_meter.update(acc2, 1)
             acc_2_pse_meter.update(acc2_pse, 1)
-
+            i+=1
             torch.cuda.synchronize()
             if (n_iter + 1) % log_period == 0:
                 logger.info("Epoch[{}] Iteration[{}/{}] Loss1: {:.3f}, Loss2: {:.3f}, Loss3: {:.3f},  Acc: {:.3f}, Acc2: {:.3f}, Acc2_pse: {:.3f}, Base Lr: {:.2e}"
@@ -424,7 +424,7 @@ def do_train_uda(cfg,
                                     loss1_meter.avg, loss2_meter.avg, loss3_meter.avg, acc_meter.avg, acc_2_meter.avg, acc_2_pse_meter.avg, scheduler._get_lr(epoch)[0]))
 
         end_time = time.time()
-        time_per_batch = (end_time - start_time) / (n_iter + 1)
+        time_per_batch = (end_time - start_time) / (i + 1)
         if cfg.MODEL.DIST_TRAIN:
             if dist.get_rank() == 0:
                 logger.info("Epoch {} done. Time per batch: {:.3f}[s] Speed: {:.1f}[samples/s]"
