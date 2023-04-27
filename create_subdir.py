@@ -6,8 +6,8 @@ import pandas as pd
 import argparse
 
 parser = argparse.ArgumentParser(description='Create a sample dataset from a parent dataset.')
-parser.add_argument('--data_dir', type=str, default= '../test/sgada_data', help='Path to the parent directory of the subdirectory of classes.')
-parser.add_argument('--sub_dir', type=str, default='../test/cocoflir_2', help='Name of the subdirectory of classes. Default is "subdirectory_name".')
+parser.add_argument('--data_dir', type=str, default= './data/cocoflir', help='Path to the parent directory of the subdirectory of classes.')
+parser.add_argument('--sub_dir', type=str, default='./data/cocoflir_2000', help='Name of the subdirectory of classes. Default is "subdirectory_name".')
 parser.add_argument('--subset_size', type=int, default=50, help='Desired size of the subset dataset. Default is 50.')
 
 args = parser.parse_args()
@@ -19,7 +19,7 @@ data_dir = args.data_dir
 subset_dir = args.sub_dir
 
 # Set the desired size of the subset dataset
-subset_size = args.subset_size
+sub_size = [0, 0, 0]
 
 # Set the path to the directory containing the subdirectories of classes
 # data_dir = "../test/sgada_data/"
@@ -49,16 +49,22 @@ for i in cat:
 
  
     cat_sub_dir = os.path.join(subset_dir,i)
-    if not os.path.exists(cat_sub_dir):
-        os.mkdir(cat_sub_dir)
     
     if  not os.path.isdir(cat_dir):
                 print('not dir')
                 continue
+    if not os.path.exists(cat_sub_dir):
+        os.mkdir(cat_sub_dir)
+    
+    
     classes = os.listdir(cat_dir)
 
+    total = 0
+    for i,cls in enumerate(classes):
+        sub_size[i] = len(os.listdir(os.path.join(cat_dir, cls)))
+        total += sub_size[i]
     # Loop over each class subdirectory
-    for cls in classes:
+    for i, cls in enumerate(classes):
         
         # Create a subdirectory in the subset directory for this class
         cls_subset_dir = os.path.join(cat_sub_dir, cls)
@@ -74,13 +80,15 @@ for i in cat:
         print(cls_dir)
         files = os.listdir(cls_dir)
 
-        if cls == 'bicycle':
-             subset_size = len(files)
-        elif cls=='car' or cls=='person':
-             subset_size=10000
+        # if cls == 'bicycle':
+        #      subset_size = len(files)
+        # elif cls=='car' or cls=='person':
+        #      subset_size=10000
+        subset_size_i = (sub_size[i]/total)*2000
+        print(sub_size)
         # Choose a random subset of files from the class subdirectory
-        subset = random.sample(files, min(subset_size, len(files)))
-
+        subset = random.sample(files, min(int(subset_size_i), len(files)))
+        print(len(subset))
         # Copy the chosen files to the class's subset directory
         for file in tqdm(subset):
             file_name = os.path.basename(file)

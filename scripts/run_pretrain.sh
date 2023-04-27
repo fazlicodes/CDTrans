@@ -16,7 +16,7 @@ then
     model_type='swin_small_patch4_window7_224_TransReID'
     pretrain_model='swin_small_patch4_window7_224_22k.pth'
     in_planes=768
-    gpus="('0,1')"
+    gpus="('0')"
 elif [ $model == 'swin_base' ]
 then
     model_type='swin_base_patch4_window7_224_TransReID'
@@ -31,7 +31,7 @@ else
 fi
 
 python train.py --config_file configs/pretrain.yml MODEL.DEVICE_ID $gpus \
-OUTPUT_DIR '../logs/pretrain_final/'$model'/coco-flir/flir/'$run \
+OUTPUT_DIR '../logs/pretrain_final/'$model'/coco-flir/'$run \
 DATASETS.ROOT_TRAIN_DIR './data/cocoflir/mscoco.txt' \
 DATASETS.ROOT_TRAIN_DIR2 './data/cocoflir/flir.txt' \
 DATASETS.ROOT_TEST_DIR './data/cocoflir/flir.txt' \

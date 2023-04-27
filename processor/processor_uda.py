@@ -56,7 +56,11 @@ def obtain_label(logger, val_loader, model, distance='cosine', threshold=0):
     _, predict = torch.max(all_output, 1)
 
     accuracy = torch.sum(torch.squeeze(predict).float() == all_label).item() / float(all_label.size()[0])
-    # pred_label = predict.numpy()
+    log_str = 'Accuracy of the psuedo labeler: {}'.format(accuracy)
+    logger.info(log_str)
+
+    pred_label = predict.numpy()
+
     if distance == 'cosine':
         all_fea = torch.cat((all_fea, torch.ones(all_fea.size(0), 1)), 1)
         all_fea = (all_fea.t() / torch.norm(all_fea, p=2, dim=1)).t()
@@ -152,14 +156,14 @@ def long_matmul(x,y, chunk_size=1000, topk=2, target_sample_num=2):
 def make_weight_for_balanced_classes(images, nclasses):
     count = [0]*nclasses
     for item in images:
-        count[item[1]] += 1
+        count[item[1][0]] += 1
     weight_per_class = [0.]*nclasses
     N = float(sum(count))
     for i in range(nclasses):
         weight_per_class[i] = N/float(count[i])
     weight = [0]*len(images)
     for idx, val in enumerate(images):
-        weight[idx] = weight_per_class[val[1]]
+        weight[idx] = weight_per_class[val[1][0]]
     return weight
 
 def compute_knn_idx(logger, model, train_loader1, train_loader2, feat_memory1, feat_memory2, label_memory1, label_memory2, img_num1, img_num2, target_sample_num=2, topk=1, reliable_threshold=0.0):
@@ -272,7 +276,7 @@ def generate_new_dataset(cfg, logger, label_memory2, s_dataset, t_dataset, knnid
     num_workers = cfg.DATALOADER.NUM_WORKERS
     train_loader = DataLoader(
             new_dataset, batch_size=cfg.SOLVER.IMS_PER_BATCH,
-            shuffle=True, drop_last = True, 
+            shuffle=False, drop_last = True, 
             num_workers=num_workers, collate_fn=source_target_train_collate_fn,
             pin_memory=True, persistent_workers=True,
             sampler=sampler,
@@ -349,6 +353,7 @@ def do_train_uda(cfg,
         d_optimizer = torch.optim.Adam( disc_model.parameters(),
                                  lr=1e-3, betas=(.5, .999), weight_decay=2.5e-5)
         d_losses = AverageMeter()
+        acc_d_meter = AverageMeter()
         print("Using Discriminator network, ")
 
 
@@ -393,7 +398,7 @@ def do_train_uda(cfg,
 
         if cfg.MODEL.USE_DISC:
             d_losses.reset()
-
+            acc_d_meter.reset()
         scheduler.step(epoch)
 
         if (epoch-1) % update_epoch == 0:
@@ -401,7 +406,6 @@ def do_train_uda(cfg,
             dynamic_top = 1
             print('source and target topk==',dynamic_top)
             target_label, knnidx, knnidx_topk, target_knnidx = compute_knn_idx(logger, model, train_loader1, train_loader2, feat_memory1, feat_memory2, label_memory1, label_memory2, img_num1, img_num2, topk=dynamic_top, reliable_threshold=0.0)
-            print(target_label)
             del train_loader
             
             train_loader = generate_new_dataset(cfg, logger, label_memory2, s_dataset, t_dataset, knnidx, target_knnidx, target_label, label_memory1, img_num1, img_num2, with_pseudo_label_filter = cfg.SOLVER.WITH_PSEUDO_LABEL_FILTER)
@@ -417,11 +421,33 @@ def do_train_uda(cfg,
             label_knn = label_memory2[t_idx].cuda()
             # print(img.shape)
             # print(t_img.shape)
-            optimizer.zero_grad()
-            optimizer_center.zero_grad()
+            
             target_cam = target_cam.to(device)
             target_view = target_view.to(device)
 
+            # Train discriminator
+            if cfg.MODEL.USE_DISC:
+                with amp.autocast(enabled=True):
+                    (self_score1, self_feat1, _), (score2, feat2, _), (score_fusion, _, _), aux_data  = model(img, t_img, target, cam_label=target_cam, view_label=target_view ) # output: source , target , source_target_fusion
+
+                p_source = disc_model(self_feat1)
+                p_target = disc_model(feat2)
+
+                D_target_source = torch.tensor([0] * img.shape[0], dtype=torch.long).to(device)
+                D_target_target = torch.tensor([1] * t_img.shape[0], dtype=torch.long).to(device)
+
+                D_output = torch.cat([p_source, p_target], dim=0)
+                D_target = torch.cat([D_target_source, D_target_target], dim=0)
+
+                loss_d = d_criterion(D_output,D_target)
+                d_optimizer.zero_grad()
+                loss_d.backward()
+                d_optimizer.step()
+                d_losses.update(loss_d.item(), img.shape[0])
+
+                acc_d = (D_output.max(1)[1] == D_target).float().mean()
+
+            # Train feature extractor
             with amp.autocast(enabled=True):
                 def distill_loss(teacher_output, student_out):
                     teacher_out = F.softmax(teacher_output, dim=-1)    
@@ -436,29 +462,16 @@ def do_train_uda(cfg,
 
                 loss = loss2 + loss3 + loss1
 
-                # Add discriminator
                 if cfg.MODEL.USE_DISC:
-
-                    p_source = disc_model(self_feat1)
                     p_target = disc_model(feat2)
+                    loss_d = d_criterion(p_target,D_target_source)
+                    loss = loss + 0.25*loss_d
 
-                    D_target_source = torch.tensor([0] * img.shape[0], dtype=torch.long).to(device)
-                    D_target_target = torch.tensor([1] * t_img.shape[0], dtype=torch.long).to(device)
-
-                    D_output = torch.cat([p_source, p_target], dim=0)
-                    D_target = torch.cat([D_target_source, D_target_target], dim=0)
-
-                    loss_d = d_criterion(D_output,D_target)
-                    d_optimizer.zero_grad()
-                    loss_d.backward()
-                    d_optimizer.step()
-                    d_losses.update(loss_d.item(), img.shape[0])
-                    acc_d = (D_output.max(1)[1] == D_target).float().mean()
-                
             # if cfg.MODEL.USE_DISC:
                 # train discriminator
-                
-
+            
+            optimizer.zero_grad()
+            optimizer_center.zero_grad()
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -493,12 +506,18 @@ def do_train_uda(cfg,
             acc_2_meter.update(acc2, 1)
             acc_2_pse_meter.update(acc2_pse, 1)
 
+            if cfg.MODEL.USE_DISC: 
+                acc_d_meter.update(acc_d, img.shape[0])
 
             torch.cuda.synchronize()
             if (n_iter + 1) % log_period == 0:
-                logger.info("Epoch[{}] Iteration[{}/{}] Loss1: {:.3f}, Loss2: {:.3f}, Loss3: {:.3f},  Acc: {:.3f}, Acc2: {:.3f}, Acc2_pse: {:.3f}, Base Lr: {:.2e}"
-                            .format(epoch, (n_iter + 1), len(train_loader),
-                                    loss1_meter.avg, loss2_meter.avg, loss3_meter.avg, acc_meter.avg, acc_2_meter.avg, acc_2_pse_meter.avg, scheduler._get_lr(epoch)[0]))
+
+                log_txt = "Epoch[{}] Iteration[{}/{}] Loss1: {:.3f}, Loss2: {:.3f}, Loss3: {:.3f}, Acc: {:.3f}, Acc2: {:.3f}, Acc2_pse: {:.3f}, Base Lr: {:.2e}".format(epoch, (n_iter + 1), len(train_loader),
+                                    loss1_meter.avg, loss2_meter.avg, loss3_meter.avg, acc_meter.avg, acc_2_meter.avg, acc_2_pse_meter.avg, scheduler._get_lr(epoch)[0])
+                if cfg.MODEL.USE_DISC:
+                    log_txt+= " loss_d: {:.3f}, acc_d: {:.3f}".format(d_losses.avg, acc_d_meter.avg)
+
+                logger.info(log_txt)
 
         end_time = time.time()
         time_per_batch = (end_time - start_time) / (i + 1)

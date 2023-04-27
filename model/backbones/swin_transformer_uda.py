@@ -974,7 +974,7 @@ def uda_swin_base_patch4_window7_224_TransReID(img_size=224, patch_size=4, in_ch
                  window_size=7, mlp_ratio=4., qkv_bias=True, qk_scale=None,
                  drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
-                 use_checkpoint=False, fused_window_process=False, **kwargs):
+                 use_checkpoint=False, fused_window_process=False , block_pattern='3_branch',local_feature=False, **kwargs):
     model = SwinTransformer_uda(img_size=img_size,
                                 patch_size=patch_size,
                                 in_chans=in_chans,
@@ -992,7 +992,7 @@ def uda_swin_base_patch4_window7_224_TransReID(img_size=224, patch_size=4, in_ch
                                 norm_layer=norm_layer,
                                 patch_norm=patch_norm,
                                 use_checkpoint=use_checkpoint,
-                                fused_window_process=fused_window_process)
+                                fused_window_process=fused_window_process, local_feature=local_feature, block_pattern=block_pattern)
 
     return model
 

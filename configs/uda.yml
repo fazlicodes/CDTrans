@@ -7,12 +7,14 @@ MODEL:
   NAME: 'transformer'
   NO_MARGIN: True
   DEVICE_ID: ('0')
-  Transformer_TYPE: 'uda_vit_base_patch16_224_TransReID' #uda_vit_small_patch16_224_TransReID
+  Transformer_TYPE: 'uda_vit_small_patch16_224_TransReID' #uda_vit_small_patch16_224_TransReID
   STRIDE_SIZE: [16, 16]
   BLOCK_PATTERN: '3_branches'
   TASK_TYPE: 'classify_DA'
   UDA_STAGE: 'UDA'
-  USE_DISC: False
+  USE_DISC: True
+  IN_PLANES: 384
+  PRETRAIN_PATH: '../logs/pretrain/deit_small/coco-flir/mscoco/transformer_10.pth'
 #  CAMERA_EMBEDDING: True
 #  VIEWPOINT_EMBEDDING: True
 
