@@ -7,7 +7,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Create a sample dataset from a parent dataset.')
 parser.add_argument('--data_dir', type=str, default= './data/cocoflir', help='Path to the parent directory of the subdirectory of classes.')
-parser.add_argument('--sub_dir', type=str, default='./data/cocoflir_2000', help='Name of the subdirectory of classes. Default is "subdirectory_name".')
+parser.add_argument('--sub_dir', type=str, default='./data/cocoflir_1000/', help='Name of the subdirectory of classes. Default is "subdirectory_name".')
 parser.add_argument('--subset_size', type=int, default=50, help='Desired size of the subset dataset. Default is 50.')
 
 args = parser.parse_args()
@@ -49,7 +49,7 @@ for i in cat:
 
  
     cat_sub_dir = os.path.join(subset_dir,i)
-    
+
     if  not os.path.isdir(cat_dir):
                 print('not dir')
                 continue
@@ -60,11 +60,11 @@ for i in cat:
     classes = os.listdir(cat_dir)
 
     total = 0
-    for i,cls in enumerate(classes):
-        sub_size[i] = len(os.listdir(os.path.join(cat_dir, cls)))
-        total += sub_size[i]
+    for k,cls in enumerate(classes):
+        sub_size[k] = len(os.listdir(os.path.join(cat_dir, cls)))
+        total += sub_size[k]
     # Loop over each class subdirectory
-    for i, cls in enumerate(classes):
+    for j, cls in enumerate(classes):
         
         # Create a subdirectory in the subset directory for this class
         cls_subset_dir = os.path.join(cat_sub_dir, cls)
@@ -84,7 +84,7 @@ for i in cat:
         #      subset_size = len(files)
         # elif cls=='car' or cls=='person':
         #      subset_size=10000
-        subset_size_i = (sub_size[i]/total)*2000
+        subset_size_i = (sub_size[j]/total)*1000
         print(sub_size)
         # Choose a random subset of files from the class subdirectory
         subset = random.sample(files, min(int(subset_size_i), len(files)))

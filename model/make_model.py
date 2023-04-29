@@ -8,6 +8,9 @@ from .backbones.vit_pytorch import vit_base_patch16_224_TransReID, vit_small_pat
 from .backbones.swin_transformer import swin_base_patch4_window7_224_TransReID,swin_small_patch4_window7_224_TransReID
 from .backbones.swin_transformer_uda import uda_swin_base_patch4_window7_224_TransReID,uda_swin_small_patch4_window7_224_TransReID
 from .backbones.vit_pytorch_uda import uda_vit_base_patch16_224_TransReID, uda_vit_small_patch16_224_TransReID
+from .backbones.cvt import cvt_21_224_TransReID
+from .backbones.cvt_uda import uda_cvt_21_224_TransReID
+
 import torch.nn.functional as F
 from loss.metric_learning import Arcface, Cosface, AMSoftmax, CircleLoss
 import numpy as np
@@ -319,6 +322,8 @@ class build_uda_transformer(nn.Module):
         else:
             if 'swin' in cfg.MODEL.Transformer_TYPE:
                     self.in_planes = int(128 * 2 ** (len(cfg.MODEL.SWIN.DEPTHS) - 1))
+            elif 'cvt' in cfg.MODEL.Transformer_TYPE:
+                self.in_planes = 384
             else:
                 self.in_planes = 768
 
@@ -392,7 +397,7 @@ class build_uda_transformer(nn.Module):
             if model_path == '':
                 print('make model without initialization')
             else:
-                # self.base.load_pretrained(self.base, model_path)
+                self.base.load_pretrained(self.base, model_path)
                 self.load_param_finetune(model_path)
                 print('Loading pretrained model......from {}'.format(model_path))
 
@@ -461,8 +466,8 @@ class build_uda_transformer(nn.Module):
         for i in param_dict:  
             if 'module.' in i: new_i = i.replace('module.','') 
             else: new_i = i
-            # if 'base.' in i:
-            #     continue
+            if 'base.' in i:
+                continue
             if new_i not in self.state_dict().keys():
                 print('model parameter: {} not match'.format(new_i))
                 continue
@@ -481,6 +486,8 @@ __factory_hh = {
     'uda_swin_small_patch4_window7_224_TransReID': uda_swin_small_patch4_window7_224_TransReID,  
     'uda_vit_small_patch16_224_TransReID': uda_vit_small_patch16_224_TransReID, 
     'uda_vit_base_patch16_224_TransReID': uda_vit_base_patch16_224_TransReID,
+    'cvt_21_224_TransReID': cvt_21_224_TransReID,
+    'uda_cvt_21_224_TransReID': uda_cvt_21_224_TransReID,
     # 'resnet101': resnet101,
 }
 
@@ -488,6 +495,7 @@ def make_model(cfg, num_class, camera_num, view_num):
     if cfg.MODEL.NAME == 'transformer':
         if cfg.MODEL.BLOCK_PATTERN == '3_branches':
             model = build_uda_transformer(num_class, camera_num, view_num, cfg, __factory_hh)
+            print(model)
             print('===========building uda transformer===========')
         else:
             model = build_transformer(num_class, camera_num, view_num, cfg, __factory_hh)

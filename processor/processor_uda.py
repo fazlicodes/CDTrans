@@ -54,7 +54,6 @@ def obtain_label(logger, val_loader, model, distance='cosine', threshold=0):
 
     all_output = nn.Softmax(dim=1)(all_output)
     _, predict = torch.max(all_output, 1)
-
     accuracy = torch.sum(torch.squeeze(predict).float() == all_label).item() / float(all_label.size()[0])
     log_str = 'Accuracy of the psuedo labeler: {}'.format(accuracy)
     logger.info(log_str)
@@ -160,7 +159,7 @@ def make_weight_for_balanced_classes(images, nclasses):
     weight_per_class = [0.]*nclasses
     N = float(sum(count))
     for i in range(nclasses):
-        weight_per_class[i] = N/float(count[i])
+        weight_per_class[i] = N/float(count[i]+1e-6)
     weight = [0]*len(images)
     for idx, val in enumerate(images):
         weight[idx] = weight_per_class[val[1][0]]
@@ -320,7 +319,6 @@ def do_train_uda(cfg,
     eval_period = cfg.SOLVER.EVAL_PERIOD
     device = "cuda"
     epochs = cfg.SOLVER.MAX_EPOCHS
-
     logger = logging.getLogger("reid_baseline.train")
     logger.info('start training')
     _LOCAL_PROCESS_GROUP = None
@@ -465,7 +463,7 @@ def do_train_uda(cfg,
                 if cfg.MODEL.USE_DISC:
                     p_target = disc_model(feat2)
                     loss_d = d_criterion(p_target,D_target_source)
-                    loss = loss + 0.25*loss_d
+                    loss = loss + loss_d
 
             # if cfg.MODEL.USE_DISC:
                 # train discriminator

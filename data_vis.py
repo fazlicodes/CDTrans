@@ -37,10 +37,17 @@ def plot_tsne(data, labels, title, save_path):
     tsne = TSNE(n_components=2, verbose=1, perplexity=40, n_iter=300)
     tsne_results = tsne.fit_transform(data)
     plt.figure(figsize=(10, 5))
+    # fig = plt.figure(figsize=(10, 5))
+    # plt = fig.add_subplot(projection='3d')
+    classes = ['flir_bicylce', 'flir_car', 'flir_person', 'mscoco_bicycle', 'mscoco_car', 'flir_person']
+    # classes = ['bicycle', 'car', 'person']
+    label_mapping = {i: c for i, c in enumerate(classes)}
     plt.title(title)
-    plt.scatter(tsne_results[:, 0], tsne_results[:, 1], c=labels, cmap=plt.cm.get_cmap("jet", 6))
-    plt.colorbar(ticks=range(6))
-    plt.clim(0, 2)
+    scatter = plt.scatter(tsne_results[:, 0], tsne_results[:, 1], c=labels, cmap=plt.cm.get_cmap("jet", 6), alpha=0.7, label=classes)
+    # plt.colorbar(ticks=range(6))
+    # legend1 = plt.legend(*scatter.legend_elements(**label_mapping), title="Classes")
+    plt.clim(0, 6)
+    # plt.gca().add_artist(legend1)
     plt.savefig(save_path)
     plt.show()
     plt.close()
@@ -85,6 +92,7 @@ def get_dataloader(dataset_dir, batch_size, train):
     
     dataset = datasets.ImageFolder(root=dataset_dir,
                                         transform=pre_process)
+    
     data_loader = torch.utils.data.DataLoader(
         dataset=dataset,
         batch_size=batch_size,
@@ -96,28 +104,26 @@ def get_dataloader(dataset_dir, batch_size, train):
 def main(cfg):
     #set device 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    device = 'cpu'
-    model_path = '../logs/pretrain/cvt/transformer_best_model.pth'
+    # model_path = '../logs/uda/cvt/transformer_best_model.pth'
     data_path_flir = './data/cocoflir_2000/flir'
     data_path_mscoco = './data/cocoflir_2000/mscoco'
     txt_path = './data/cocoflir_small/flir.txt'
 
     #get data and labels
     dataloader_flir = get_dataloader(data_path_flir, 128, train=False)
-    # dataloader_mscoco = get_data(data_path_mscoco, 128, train=False)
+    dataloader_mscoco = get_dataloader(data_path_mscoco, 128, train=False)
 
-    print('Number of data points in mscoco', len(dataloader_flir)*128)
-    # print('Number of data points in flir', len(dataloader_mscoco)*128)
+    print('Number of data points in flir', len(dataloader_flir)*128)
+    print('Number of data points in mscoco', len(dataloader_mscoco)*128)
 
     #load model
     model = make_model(cfg, 3, 0, 0)
-    model.load_param_finetune(model_path)
+    # model.load_param_finetune(model_path)
 
+    
     
     feat_memory1 = []
     label_memory1 = []
-
-    
 
     model.to(device)
     model.eval()
@@ -126,7 +132,7 @@ def main(cfg):
             img = img.to(device)
             feats = model(img, img)
             feat = feats[1]/(torch.norm(feats[1],2,1,True)+1e-8)
-            feat_memory1.append(feat)
+            feat_memory1.append(feat.cpu())
             label_memory1.append(vid)
 
     # feat_memory2 = []
@@ -136,14 +142,14 @@ def main(cfg):
     #         img = img.to(device)
     #         feats = model(img, img)
     #         feat = feats[1]/(torch.norm(feats[1],2,1,True)+1e-8)
-    #         feat_memory2.append(feat)
+    #         feat_memory2.append(feat.cpu())
     #         label_memory2.append(vid+3)
-
+    
     data = np.concatenate(feat_memory1, axis=0)
     label = np.concatenate(label_memory1, axis=0)
    
     #plot t-sne plot
-    plot_tsne(data, label, 't-sne plot', 'tsne.png')
+    plot_tsne(data, label, 't-sne plot', 'plots/tsne_flir_cvt_pretrain.png')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="ReID Baseline Training")

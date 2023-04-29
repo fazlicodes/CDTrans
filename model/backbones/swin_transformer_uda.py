@@ -736,7 +736,7 @@ class SwinTransformer_uda(nn.Module):
 
         self.norm = norm_layer(self.num_features)
         self.avgpool = nn.AdaptiveAvgPool1d(1)
-        self.fc = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
+        self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
 
 
         self.apply(self._init_weights)
@@ -895,25 +895,25 @@ class SwinTransformer_uda(nn.Module):
                     state_dict[k] = absolute_pos_embed_pretrained_resized
 
         # check classifier, if not match, then re-init classifier to zero
-        # head_bias_pretrained = state_dict['head.bias']
-        # Nc1 = head_bias_pretrained.shape[0]
-        # Nc2 = model.head.bias.shape[0]
-        # if (Nc1 != Nc2):
-        #     if Nc1 == 21841 and Nc2 == 1000:
-        #         # logger.info("loading ImageNet-22K weight to ImageNet-1K ......")
-        #         map22kto1k_path = f'data/map22kto1k.txt'
-        #         with open(map22kto1k_path) as f:
-        #             map22kto1k = f.readlines()
-        #         map22kto1k = [int(id22k.strip()) for id22k in map22kto1k]
-        #         state_dict['head.weight'] = state_dict['head.weight'][map22kto1k, :]
-        #         state_dict['head.bias'] = state_dict['head.bias'][map22kto1k]
-        #     else:
-        # torch.nn.init.constant_(model.head.bias, 0.)
-        # torch.nn.init.constant_(model.head.weight, 0.)
-        # del state_dict['head.weight']
-        # del state_dict['head.bias']
-        # # logger.warning(f"Error in loading classifier head, re-init classifier head to 0")
-        # print(f"Error in loading classifier head, re-init classifier head to 0")
+        head_bias_pretrained = state_dict['base.head.bias']
+        Nc1 = head_bias_pretrained.shape[0]
+        Nc2 = model.head.bias.shape[0]
+        if (Nc1 != Nc2):
+            if Nc1 == 21841 and Nc2 == 1000:
+                # logger.info("loading ImageNet-22K weight to ImageNet-1K ......")
+                map22kto1k_path = f'data/map22kto1k.txt'
+                with open(map22kto1k_path) as f:
+                    map22kto1k = f.readlines()
+                map22kto1k = [int(id22k.strip()) for id22k in map22kto1k]
+                state_dict['base.head.weight'] = state_dict['base.head.weight'][map22kto1k, :]
+                state_dict['base.head.bias'] = state_dict['base.head.bias'][map22kto1k]
+            else:
+                torch.nn.init.constant_(model.head.bias, 0.)
+                torch.nn.init.constant_(model.head.weight, 0.)
+                del state_dict['head.weight']
+                del state_dict['head.bias']
+                # logger.warning(f"Error in loading classifier head, re-init classifier head to 0")
+                print(f"Error in loading classifier head, re-init classifier head to 0")
 
         msg = model.load_state_dict(state_dict, strict=False)
 
@@ -929,7 +929,8 @@ class SwinTransformer_uda(nn.Module):
             param_dict = param_dict['state_dict']
         
         for k, v in param_dict.items():
-            if 'head' in k or 'dist' in k:
+            if 'base.' in k : k = k.replace('base.','')
+            if 'head' in k or 'dist' in k or 'classifier' in k or 'bottleneck' in k or 'gap' in k:
                 continue
             if 'patch_embed.proj.weight' in k and len(v.shape) < 4:
                 # For old models that I trained prior to conv based patchification

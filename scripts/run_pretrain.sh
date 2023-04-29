@@ -30,7 +30,7 @@ else
     gpus="('0')"
 fi
 
-python train.py --config_file configs/pretrain.yml MODEL.DEVICE_ID $gpus \
+python test.py --config_file configs/pretrain.yml MODEL.DEVICE_ID $gpus \
 OUTPUT_DIR '../logs/pretrain_final/'$model'/coco-flir/'$run \
 DATASETS.ROOT_TRAIN_DIR './data/cocoflir/mscoco.txt' \
 DATASETS.ROOT_TRAIN_DIR2 './data/cocoflir/flir.txt' \

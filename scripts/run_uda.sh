@@ -14,7 +14,7 @@ elif [ $model == 'swin_small' ]
 then
     model='swin_small'
     model_type='uda_swin_small_patch4_window7_224_TransReID'
-    gpus="('0,1')"
+    gpus="('0')"
     in_planes=768
 elif [ $model == 'swin_base' ]
 then
@@ -36,5 +36,5 @@ DATASETS.ROOT_TRAIN_DIR2 './data/cocoflir/flir.txt' \
 DATASETS.ROOT_TEST_DIR './data/cocoflir/flir.txt' \
 DATASETS.NAMES "cocoflir" DATASETS.NAMES2 "cocoflir" \
 MODEL.Transformer_TYPE $model_type \
-MODEL.PRETRAIN_PATH '../logs/pretrain/'$model'/coco-flir/mscoco/transformer_10.pth' \
+MODEL.PRETRAIN_PATH '../logs/pretrain_final/'$model'/coco-flir/final/transformer_10.pth' \
 MODEL.IN_PLANES $in_planes \
