@@ -103,13 +103,11 @@ def make_dataloader(cfg):
     ])
 
     num_workers = cfg.DATALOADER.NUM_WORKERS
-    dataset = __factory[cfg.DATASETS.NAMES](root_train=cfg.DATASETS.ROOT_TRAIN_DIR,root_val=cfg.DATASETS.ROOT_TEST_DIR, plus_num_id=cfg.DATASETS.PLUS_NUM_ID)
+    dataset = __factory[cfg.DATASETS.NAMES](source_data=cfg.DATASETS.ROOT_TRAIN_DIR,target_data=cfg.DATASETS.ROOT_TRAIN_DIR2,target_test=cfg.DATASETS.ROOT_TEST_DIR, plus_num_id=cfg.DATASETS.PLUS_NUM_ID)
     train_set = ImageDataset(dataset.train, train_transforms)
     train_set1 = ImageDataset(dataset.train, val_transforms)
 
-    weight = make_weight_for_balanced_classes(dataset.train, 3)
-    weight=torch.DoubleTensor(weight)
-    sampler = torch.utils.data.sampler.WeightedRandomSampler(weight, len(weight))
+    
     train_set_normal = ImageDataset(dataset.train, val_transforms)
     img_num1 = len(dataset.train)
     
@@ -156,10 +154,14 @@ def make_dataloader(cfg):
             pin_memory=True, persistent_workers=True,
         )
     else:
-        print('use shuffle sampler strategy')
+        print('use a weighted random shuffler strategy')
+        weight = make_weight_for_balanced_classes(dataset.train, 3)
+        weight=torch.DoubleTensor(weight)
+        sampler = torch.utils.data.sampler.WeightedRandomSampler(weight, len(weight))
+
         train_loader = DataLoader(
-        train_set, batch_size=cfg.SOLVER.IMS_PER_BATCH, shuffle=True, num_workers=num_workers,
-        collate_fn=train_collate_fn
+        train_set, batch_size=cfg.SOLVER.IMS_PER_BATCH, num_workers=num_workers,
+        collate_fn=train_collate_fn, sampler=sampler,
     )
         
     if cfg.DATASETS.QUERY_MINING:

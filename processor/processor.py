@@ -12,6 +12,7 @@ from torch.cuda import amp
 import torch.distributed as dist
 from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
 from timm.utils import accuracy
+from sklearn.metrics import f1_score
 
 def do_train_pretrain(cfg,
              model,
@@ -220,6 +221,10 @@ def do_inference(cfg,
 
     model.eval()
     img_path_list = []
+    class_correct = list(0. for i in range(3))
+    class_total = list(0. for i in range(3))
+    pred_counts = list(0. for i in range(3))
+    f1 = 0
     for n_iter, (img, pid, camid, camids, target_view, imgpath) in enumerate(val_loader):
         with torch.no_grad():
             img = img.to(device)
@@ -229,7 +234,15 @@ def do_inference(cfg,
             if cfg.TEST.EVAL:
                 if cfg.MODEL.TASK_TYPE == 'classify_DA':
                     probs = model(img, cam_label=camids, view_label=target_view, return_logits=True)
+                    _, predicted = torch.max(probs, 1)
+                    for i in range(len(pid)):
+                        label = pid[i]
+                        pred_counts[predicted[i]] += 1
+                        class_correct[label] += (predicted[i] == label).item()
+                        class_total[label] += 1
+                    f1 += f1_score(predicted.cpu(), pid, average='macro')
                     evaluator.update((probs, pid))
+
                 else:
                     feat = model(img, cam_label=camids, view_label=target_view)
                     evaluator.update((feat, pid, camid))
@@ -244,6 +257,15 @@ def do_inference(cfg,
             accuracy, mean_ent = evaluator.compute()  
             logger.info("Classify Domain Adapatation Validation Results - In the source trained model")
             logger.info("Accuracy: {:.1%}".format(accuracy))
+            logger.info("f1_score: {:.1%}".format(f1/len(val_loader)))
+            for i in range(3):
+                if class_total[i] > 0:
+                    logger.info('Accuracy of class %d: %2d%% (%2d/%2d)' % (
+                        i, 100 * class_correct[i] / class_total[i],
+                        class_correct[i], class_total[i]))
+                else:
+                    print('Accuracy of class %d: N/A (no examples in class)' % (i))
+            logger.info('prediction counts for exach class:{} '.format(pred_counts))
             return 
         else:
             cmc, mAP, _, _, _, _, _ = evaluator.compute()

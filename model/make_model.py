@@ -200,6 +200,9 @@ class build_transformer(nn.Module):
                                                                 depths=cfg.MODEL.SWIN.DEPTHS, 
                                                                 stride_size=cfg.MODEL.STRIDE_SIZE, 
                                                                 drop_path_rate=cfg.MODEL.DROP_PATH)
+            elif 'cvt' in cfg.MODEL.Transformer_TYPE:
+                self.base = factory[cfg.MODEL.Transformer_TYPE]()
+                                                         
             else:
                 self.base = factory[cfg.MODEL.Transformer_TYPE](img_size=cfg.INPUT.SIZE_CROP, 
                                                                 aie_xishu=cfg.MODEL.AIE_COE,

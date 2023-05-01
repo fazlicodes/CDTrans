@@ -18,26 +18,31 @@ class CocoFlir(BaseImageDataset):
     """
     dataset_dir = ''
 
-    def __init__(self, root_train='./datasets/reid_datasets/Corrected_Market1501', root_val='./datasets/reid_datasets/Corrected_Market1501', pid_begin=0, verbose=True, **kwargs):
+    def __init__(self, source_data='../dataset/sgada_data/mscoco/train/mscoco_train.txt', target_data='../dataset/sgada_data/flir/train/flir_train.txt', target_test= "../dataset/sgada_data/flir/val/flir_val.txt", pid_begin=0, verbose=True, **kwargs):
         super(CocoFlir, self).__init__()
-        root_train = root_train
-        root_valid = root_val
-        self.train_dataset_dir = osp.dirname(root_train)
-        self.valid_dataset_dir = osp.dirname(root_val)
-        self.train_name = osp.basename(root_train).split('.')[0]
-        self.valid_name = osp.basename(root_valid).split('.')[0]
+        # root_train = root_train
+        # root_valid = root_val
+
+        self.train_source_dir = '/'.join(osp.dirname(source_data).split('/')[:-2])
+        self.train_target_dir = '/'.join(osp.dirname(target_data).split('/')[:-2])
+        self.valid_dataset_dir = '/'.join(osp.dirname(target_test).split('/')[:-2])
+
+        self.train_name = osp.basename(source_data).split('.')[0]
+        self.valid_name = osp.basename(target_test).split('.')[0]
+
         self.pid_begin = pid_begin
-        train = self._process_dir(root_train, self.train_dataset_dir)
-        valid = self._process_dir(root_valid, self.valid_dataset_dir)
+        source = self._process_dir(source_data, self.train_source_dir)
+        target = self._process_dir(target_data, self.train_target_dir)
+        test = self._process_dir(target_test, self.valid_dataset_dir)
 
         
         if verbose:
             print("=> Coco-Flir loaded")
-            self.print_dataset_statistics(train, valid)
+            self.print_dataset_statistics(source, test)
             
-        self.train = train
-        self.valid = valid
-        self.test = valid
+        self.train = source
+        self.valid = target
+        self.test = test
 
         self.num_train_pids, self.num_train_imgs, self.num_train_cams, self.num_train_vids = self.get_imagedata_info(self.train)   
         self.num_valid_pids, self.num_valid_imgs, self.num_valid_cams, self.num_valid_vids = self.get_imagedata_info(self.valid)
@@ -87,3 +92,13 @@ class CocoFlir(BaseImageDataset):
         for idx, pid in enumerate(pid_container):
             assert idx == pid, "See code comment for explanation"
         return dataset
+    
+
+if __name__=='__main__':
+
+    source_dir = '../dataset/sgada_data/mscoco/train/mscoco_train.txt'
+    target_dir = '../dataset/sgada_data/flir/train/flir_train.txt'
+    test_dir = "../dataset/sgada_data/flir/val/flir_val.txt"
+
+    dataset = CocoFlir(source_dir, target_dir, test_dir)
+    print(dataset.train_source_dir)
