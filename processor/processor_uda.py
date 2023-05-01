@@ -19,7 +19,7 @@ import os.path as osp
 import torch.nn.functional as F
 import random, pdb, math, copy
 from scipy.spatial.distance import cdist
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, f1_score
 import torchvision.transforms as T
 from datasets.make_dataloader import train_collate_fn, source_target_train_collate_fn
 from datasets.sampler import RandomIdentitySampler

@@ -31,9 +31,9 @@ fi
 
 python train.py --config_file configs/uda.yml MODEL.DEVICE_ID $gpus \
 OUTPUT_DIR '../logs/uda/'$model'/coco-flir/'$run \
-DATASETS.ROOT_TRAIN_DIR './data/cocoflir/mscoco.txt' \
-DATASETS.ROOT_TRAIN_DIR2 './data/cocoflir/flir.txt' \
-DATASETS.ROOT_TEST_DIR './data/cocoflir/flir.txt' \
+DATASETS.ROOT_TRAIN_DIR '../dataset/sgada_data/mscoco/train/mscoco_train.txt' \
+DATASETS.ROOT_TRAIN_DIR2 '../dataset/sgada_data/flir/train/flir_train.txt' \
+DATASETS.ROOT_TEST_DIR '../dataset/sgada_data/flir/val/flir_val.txt' \
 DATASETS.NAMES "cocoflir" DATASETS.NAMES2 "cocoflir" \
 MODEL.Transformer_TYPE $model_type \
 MODEL.PRETRAIN_PATH '../logs/pretrain_final/'$model'/coco-flir/final/transformer_10.pth' \
